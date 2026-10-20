@@ -140,6 +140,7 @@ for (const dir of skillDirs) {
 		fail(file, "metadata must be a mapping of strings");
 	} else if (fm.metadata !== undefined) {
 		for (const [k, v] of Object.entries(fm.metadata)) if (typeof v !== "string") fail(file, `metadata.${k} must be a string`);
+		if (fm.metadata.version !== undefined && fm.metadata.version !== version) fail(file, `metadata.version ${fm.metadata.version} does not match plugin.json ${version}`);
 	}
 }
 

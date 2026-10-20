@@ -59,7 +59,7 @@ The repository root is a standard [Agent Plugins](https://agent-plugins.org) pac
 
 ### Backup: connect with an API key
 
-Use this when your client cannot do MCP OAuth (a headless machine, CI, or a client without OAuth). Create a key at https://bordfeed.com/dashboard/organization/api-keys; keys start with `bf_live_`. Keep it in your client's config or secret store, never in a file you commit. Add the server yourself instead of installing the plugin, replacing `bf_live_your_key` with your key. This route gives you the tools but not the `bordfeed` skill; do not add it next to the plugin, or you get two Bordfeed servers.
+Use this when your client cannot do MCP OAuth (a headless machine, CI, or a client without OAuth). Create a key at https://bordfeed.com/dashboard/organization/api-keys; keys start with `bf_live_`. Keep it in your client's config or secret store, never in a file you commit. Add the server yourself instead of installing the plugin, replacing `bf_live_your_key` with your key. This route gives you the tools but not the `bordfeed` skill; do not add this server alongside the installed plugin, or you get two Bordfeed servers.
 
 Claude Code:
 

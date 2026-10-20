@@ -51,7 +51,7 @@ Workflow:
 
 1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters and no apply link.
 2. Open only the jobs the user needs with `get_job` or `fetch`. That is where the description and apply link come from.
-3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_job` per job; say so before making those calls.
+3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_job` or `fetch` per job; say so before making those calls.
 4. Before a large pull, call `get_balance`.
 5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
@@ -59,7 +59,7 @@ Every billable result carries a `billing` object with `jobs_returned`, the balan
 
 ## REST API
 
-All endpoints take an `Authorization: Bearer` API key. When the user is connected through MCP OAuth, use the MCP tools instead; the REST API is for code the user runs with their own key. Billed endpoints:
+All endpoints take an API key as `Authorization: Bearer` or `x-api-key`. When the user is connected through MCP OAuth, use the MCP tools instead; the REST API is for code the user runs with their own key. Billed endpoints:
 
 - `GET /feeds/{id}/jobs`: a feed's jobs, newest first. `since=last_poll` returns only jobs new since the last request. Paginate with `cursor`.
 - `GET /feeds/{id}/export`: up to 1,000 jobs from a feed as JSON, CSV, HTML or Markdown.
