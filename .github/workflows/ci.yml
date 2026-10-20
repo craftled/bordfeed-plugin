@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate manifests and skill
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+      - run: npm ci --prefix scripts
+      - name: Agent Plugins, Claude Code, Cursor and SKILL.md checks
+        run: node scripts/validate.mjs
+      - name: Claude Code validator (strict)
+        run: |
+          npx -y @anthropic-ai/claude-code@2.1.304 plugin validate --strict .
+          npx -y @anthropic-ai/claude-code@2.1.304 plugin validate --strict .claude-plugin/plugin.json
+          npx -y @anthropic-ai/claude-code@2.1.304 plugin validate --strict skills
+
+  smoke:
+    name: Live MCP smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: 401 checks, plus initialize and tools/list when BORDFEED_TEST_API_KEY is set
+        env:
+          BORDFEED_TEST_API_KEY: ${{ secrets.BORDFEED_TEST_API_KEY }}
+        run: node scripts/smoke.mjs
