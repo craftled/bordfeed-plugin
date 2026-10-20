@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "bordfeed",
+  "owner": {
+    "name": "Bordfeed",
+    "email": "support@bordfeed.com"
+  },
+  "metadata": {
+    "description": "The Bordfeed plugin for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "bordfeed",
+      "source": "./",
+      "description": "Search active job listings and pull full jobs from Bordfeed saved feeds through the hosted Bordfeed MCP server.",
+      "category": "productivity",
+      "homepage": "https://bordfeed.com/docs/mcp"
+    }
+  ]
+}

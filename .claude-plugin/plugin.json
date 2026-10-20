@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "bordfeed",
+  "version": "0.1.0",
+  "description": "Search active job listings and pull full jobs from Bordfeed saved feeds through the hosted Bordfeed MCP server.",
+  "author": {
+    "name": "Bordfeed",
+    "email": "support@bordfeed.com",
+    "url": "https://bordfeed.com"
+  },
+  "homepage": "https://bordfeed.com/docs/mcp",
+  "repository": "https://github.com/craftled/bordfeed-plugin",
+  "license": "MIT",
+  "keywords": ["bordfeed", "jobs", "job-board", "job-data", "careers", "mcp", "api"],
+  "mcpServers": {
+    "bordfeed": {
+      "type": "http",
+      "url": "https://bordfeed.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${BORDFEED_API_KEY}"
+      }
+    }
+  }
+}

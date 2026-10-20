@@ -1,0 +1,13 @@
+{
+  "name": "bordfeed",
+  "owner": {
+    "name": "Bordfeed",
+    "email": "support@bordfeed.com"
+  },
+  "plugins": [
+    {
+      "name": "bordfeed",
+      "source": "./"
+    }
+  ]
+}
