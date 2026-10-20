@@ -2,10 +2,14 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { parse as parseYaml } from "yaml";
+
+// Paths below are relative to the repository root, wherever this is run from.
+process.chdir(fileURLToPath(new URL("..", import.meta.url)));
 
 const errors = [];
 const fail = (where, message) => errors.push(`${where}: ${message}`);
@@ -49,7 +53,7 @@ const version = manifests["plugin.json"].version;
 if (readJson("scripts/package.json").version !== version) fail("scripts/package.json", `version must match plugin.json ${version}`);
 for (const [file, m] of Object.entries(manifests)) {
 	if (m.name !== NAME) fail(file, `name must be "${NAME}"`);
-	if (m.version !== version) fail(file, `version ${m.version} does not match package.json ${version}`);
+	if (m.version !== version) fail(file, `version ${m.version} does not match plugin.json ${version}`);
 }
 const servers = {
 	"mcp.json": readJson("mcp.json").mcpServers,
@@ -93,7 +97,7 @@ for (const key of ["logo", "skills"]) {
 	else if (!existsSync(value)) fail(".cursor-plugin/plugin.json", `${key} path ${value} does not exist`);
 }
 const declared = new Set(Object.keys(cursor.variables?.properties ?? {}));
-for (const [, name] of JSON.stringify(cursor.mcpServers).matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g)) {
+for (const [, name] of JSON.stringify(cursor.mcpServers ?? {}).matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g)) {
 	if (!declared.has(name)) fail(".cursor-plugin/plugin.json", `\${${name}} is used but not declared in variables`);
 }
 if (cursor.variables?.type !== "object") fail(".cursor-plugin/plugin.json", 'variables.type must be "object"');
@@ -108,7 +112,7 @@ for (const dir of skillDirs) {
 		fail(file, "missing");
 		continue;
 	}
-	const match = readFileSync(file, "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+	const match = readFileSync(file, "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
 	if (!match) {
 		fail(file, "missing YAML frontmatter");
 		continue;
@@ -138,12 +142,12 @@ for (const dir of skillDirs) {
 }
 
 // 5. Repo-wide text rules: no em dashes, no committed API keys.
-// Claude Code installs a plugin-root package.json lockfile on every user's machine.
+// 6. Plugin root stays free of package manifests: Claude Code installs a root
+// package.json lockfile on users' machines, and Anthropic's directory holds it for review.
 for (const file of ["package.json", "package-lock.json", "bun.lock", "bun.lockb", "npm-shrinkwrap.json"]) {
 	if (existsSync(file)) fail(file, "dev tooling belongs in scripts/, not the plugin root");
 }
 
-const MANIFEST_COUNT = 6;
 const tracked = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8" })
 	.split("\n")
 	.filter((f) => f && existsSync(f) && !f.endsWith(".svg") && !f.endsWith("package-lock.json"));
@@ -161,4 +165,4 @@ if (errors.length > 0) {
 	for (const e of errors) console.error(`- ${e}`);
 	process.exit(1);
 }
-console.log(`Validation passed: ${MANIFEST_COUNT} manifests, ${skillDirs.length} skill(s), ${tracked.length} files checked.`);
+console.log(`Validation passed: ${Object.keys(manifests).length + 3} manifests, ${skillDirs.length} skill(s), ${tracked.length} files checked.`);
