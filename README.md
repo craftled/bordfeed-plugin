@@ -22,7 +22,7 @@ Give your coding agent live job data. This plugin connects Claude Code, Cursor a
 | `export_jobs` | A snapshot of the newest jobs from a saved feed | Billed |
 | `get_balance`, `get_pricing`, `create_topup_link` | Credits, prices and a top-up link | Free |
 
-Billed tools cost 1 credit for each returned job your organization has never been charged for. A job it was already charged for is free every time after, so repeat polls and retries of the same jobs cost nothing. Lists, search and empty pages are free. On pay as you go a credit is $0.01, and new accounts start with a one-time $20 credit with no card. Plans and current prices are on [bordfeed.com/pricing](https://bordfeed.com/pricing).
+Billed tools cost 1 credit for each returned job your organization has never been charged for. A job it was already charged for is free every time after, so repeat polls and retries of the same jobs cost nothing. Lists, search and empty pages are free. On pay as you go a credit is $0.01, and new accounts start with a one-time $20 credit (verified, non-disposable email) with no card. Plans and current prices are on [bordfeed.com/pricing](https://bordfeed.com/pricing).
 
 ## Get an API key
 

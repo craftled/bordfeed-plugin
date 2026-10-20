@@ -141,13 +141,13 @@ for (const dir of skillDirs) {
 	}
 }
 
-// 5. Repo-wide text rules: no em dashes, no committed API keys.
-// 6. Plugin root stays free of package manifests: Claude Code installs a root
+// 5. Plugin root stays free of package manifests: Claude Code installs a root
 // package.json lockfile on users' machines, and Anthropic's directory holds it for review.
 for (const file of ["package.json", "package-lock.json", "bun.lock", "bun.lockb", "npm-shrinkwrap.json"]) {
 	if (existsSync(file)) fail(file, "dev tooling belongs in scripts/, not the plugin root");
 }
 
+// 6. Repo-wide text rules: no em dashes, no committed API keys.
 const tracked = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8" })
 	.split("\n")
 	.filter((f) => f && existsSync(f) && !f.endsWith(".svg") && !f.endsWith("package-lock.json"));

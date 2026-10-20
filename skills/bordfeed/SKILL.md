@@ -54,7 +54,7 @@ Workflow:
 3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs. Set `max_jobs` to cap spend.
 4. Before a large pull, call `get_balance`.
 
-Every billable result carries a `billing` object with the jobs returned and the balance. On an `insufficient_credits` error, give the user the `topup_url`. On `rate_limit_exceeded`, wait `retry_after_seconds`.
+Every billable result carries a `billing` object with `jobs_returned`, the balance (`balance_jobs`) and an upper bound on the charge: `max_cost_usd` on pay as you go, `max_credits_used` on plans. The real charge can be lower because jobs already charged to the organization are free, so never present the bound as the amount charged. On an `insufficient_credits` error, give the user the `topup_url`. On `rate_limit_exceeded`, wait `retry_after_seconds`.
 
 ## REST API
 
@@ -64,12 +64,12 @@ All endpoints take the same `Authorization: Bearer` key. Billed endpoints:
 - `GET /feeds/{id}/export`: up to 1,000 jobs from a feed as JSON, CSV, HTML or Markdown.
 - `GET /jobs/{id}`: one full job by id or slug.
 
-Free endpoints include `GET /feeds`, `GET /companies`, `GET /companies/{id}/jobs`, `GET /search/suggest`, `GET /templates` and `GET /billing/balance`. If a response is lost, retry with the same `Idempotency-Key` header (MCP: `idempotency_key`) on the same UTC day; that retry records no new charge. Once credits run out, a page with unpaid jobs returns HTTP 402 with `insufficient_credits` and a `topup_url`.
+Free endpoints include `GET /feeds`, `GET /companies`, `GET /companies/{id}/jobs`, `GET /search/suggest`, `GET /templates` and `GET /billing/balance`. If a response is lost, retry with the same `Idempotency-Key` header (MCP: `idempotency_key`) for the same feed and the same jobs on the same UTC day; that retry records no new charge. Once credits run out, a page with unpaid jobs returns HTTP 402 with `insufficient_credits` and a `topup_url`.
 
 ## Billing
 
-- Billed calls (`get_job`, `fetch`, `poll_feed`, `export_jobs`, and the REST endpoints above) cost 1 credit for each returned job your organization has never been charged for, on every plan. A job it was already charged for is free every time after, even after the job changes or closes. So a call that returns 500 jobs costs at most 500 credits, and less when some were received before. Each result's `billing` object reports this upper bound.
-- Lists, search and empty pages are free. A retry that returns jobs already charged costs nothing, and a retry with the same idempotency key on the same UTC day records no new charge.
+- Billed calls (`get_job`, `fetch`, `poll_feed`, `export_jobs`, and the REST endpoints above) cost 1 credit for each returned job your organization has never been charged for, on every plan. A job it was already charged for is free every time after, even after the job changes or closes. So 500 returned jobs cost at most 500 credits ($5 on pay as you go), and less when some were received before.
+- Lists, search and empty pages are free. A retry that returns jobs already charged costs nothing, and a retry with the same idempotency key, for the same feed and the same jobs, on the same UTC day records no new charge.
 - Pay as you go: 1 credit is $0.01, with a one-time $20 credit to start (for a verified, non-disposable email) and no card needed.
 - For plans, top-ups and current prices, call `get_pricing` or see https://bordfeed.com/pricing. Do not quote prices from memory.
 
