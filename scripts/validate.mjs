@@ -81,6 +81,11 @@ for (const file of [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"])
 		for (const key of ["headers", "env"]) if (server?.[key]) fail(file, `server ${name} must not set ${key}; auth is OAuth`);
 	}
 }
+if (existsSync(".mcp.json")) fail(".mcp.json", "must not exist; Claude Code would load it next to the OAuth-only manifest");
+for (const file of [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"]) {
+	const value = manifests[file].mcpServers;
+	if (typeof value !== "object" || value === null || Array.isArray(value)) fail(file, "mcpServers must be an inline object so the OAuth-only rule can be checked");
+}
 if (manifests[".claude-plugin/plugin.json"].userConfig) fail(".claude-plugin/plugin.json", "must not declare userConfig; auth is OAuth");
 if (manifests[".cursor-plugin/plugin.json"].variables) fail(".cursor-plugin/plugin.json", "must not declare variables; auth is OAuth");
 for (const file of [".claude-plugin/marketplace.json", ".cursor-plugin/marketplace.json"]) {

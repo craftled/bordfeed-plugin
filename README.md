@@ -6,7 +6,7 @@
 
 Fresh job listings for your job board or career newsletter, straight from your coding agent. This plugin connects Claude Code, Cursor and other [Agent Plugins](https://agent-plugins.org) clients to the hosted [Bordfeed](https://bordfeed.com) MCP server, and adds a `bordfeed` skill that tells the agent when to use it, which tools to call and what each call costs.
 
-Ask for "fresh remote marketing jobs for this week's newsletter" and the agent searches active listings, pulls the jobs from your saved Bordfeed feed with titles, companies, locations, salaries and apply links, and formats them for your issue or your board.
+Ask for "fresh remote marketing jobs for this week's newsletter" and the agent searches active listings, pulls the jobs from your saved Bordfeed feed with titles, companies, locations, salaries where listed and apply links, and formats them for your issue or your board.
 
 - MCP server: `https://bordfeed.com/api/mcp` (Streamable HTTP)
 - REST API: `https://bordfeed.com/api/v1`
@@ -38,7 +38,7 @@ Billed tools cost 1 credit for each returned job your organization has never bee
 
 ## Install
 
-You sign in with your Bordfeed account (OAuth). There is no key to copy. The first time the agent connects, your browser opens Bordfeed: sign in or [create a free account](https://bordfeed.com/auth/sign-up?ref=github-readme&utm_medium=plugin-listing&utm_campaign=bordfeed-plugin), pick the organization the agent works for, and allow access. Billed tools charge that organization.
+You sign in with your Bordfeed account (OAuth). There is no key to copy. The first time the agent connects, your browser opens Bordfeed: sign in or [create a free account](https://bordfeed.com/auth/sign-up?ref=github-readme), pick the organization the agent works for, and allow access. Billed tools charge that organization.
 
 ### Claude Code
 
@@ -59,7 +59,7 @@ The repository root is a standard [Agent Plugins](https://agent-plugins.org) pac
 
 ### Backup: connect with an API key
 
-Use this when your client cannot do MCP OAuth (a headless machine, CI, or a client without OAuth). Create a key at https://bordfeed.com/dashboard/organization/api-keys; keys start with `bf_live_`. Keep it in your client's config or secret store, never in a file you commit. Add the server yourself instead of installing the plugin, replacing `bf_live_your_key` with your key:
+Use this when your client cannot do MCP OAuth (a headless machine, CI, or a client without OAuth). Create a key at https://bordfeed.com/dashboard/organization/api-keys; keys start with `bf_live_`. Keep it in your client's config or secret store, never in a file you commit. Add the server yourself instead of installing the plugin, replacing `bf_live_your_key` with your key. This route gives you the tools but not the `bordfeed` skill; do not add it next to the plugin, or you get two Bordfeed servers.
 
 Claude Code:
 
@@ -92,7 +92,7 @@ The plugin adds one MCP server, `https://bordfeed.com/api/mcp`, and one skill. Y
 ## Try it
 
 - "Pull fresh remote marketing jobs from my Bordfeed feed for this week's newsletter: the newest 20, as a Markdown list with title, company, location, salary and apply link."
-- "Find remote product design jobs in Europe that list a salary. Show me the 10 best fits, then open the top 3 so I can write a blurb for each."
+- "Find remote product design jobs in Germany, the Netherlands or Spain that list a salary. Show me the 10 best fits, then open the top 3 so I can write a blurb for each."
 - "Which companies are hiring data engineers in Germany right now? Search Bordfeed, no paid calls."
 - "Export the newest 50 jobs from my Bordfeed feed called Remote Dev Jobs as a table I can paste into my job board."
 - "How many Bordfeed credits do I have left, and what is the most this week's pull of 200 jobs could cost?"

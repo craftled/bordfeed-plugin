@@ -1,7 +1,7 @@
 {
   "name": "bordfeed",
   "displayName": "Bordfeed",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fresh job listings for job boards and career newsletters: search active jobs and pull your saved Bordfeed feeds with apply links through the hosted Bordfeed MCP server. Sign in with OAuth.",
   "author": {
     "name": "Bordfeed",

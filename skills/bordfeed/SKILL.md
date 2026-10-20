@@ -5,7 +5,7 @@ license: MIT
 compatibility: Needs network access to https://bordfeed.com and a Bordfeed account (OAuth sign-in or a bf_live_ API key).
 metadata:
   author: bordfeed
-  version: "0.1.0"
+  version: "0.2.0"
   homepage: https://bordfeed.com/docs
   source: https://github.com/craftled/bordfeed-plugin
 ---
@@ -51,7 +51,7 @@ Workflow:
 
 1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters and no apply link.
 2. Open only the jobs the user needs with `get_job` or `fetch`. That is where the description and apply link come from.
-3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead.
+3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_job` per job; say so before making those calls.
 4. Before a large pull, call `get_balance`.
 5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
@@ -59,7 +59,7 @@ Every billable result carries a `billing` object with `jobs_returned`, the balan
 
 ## REST API
 
-All endpoints take the same `Authorization: Bearer` key. Billed endpoints:
+All endpoints take an `Authorization: Bearer` API key. When the user is connected through MCP OAuth, use the MCP tools instead; the REST API is for code the user runs with their own key. Billed endpoints:
 
 - `GET /feeds/{id}/jobs`: a feed's jobs, newest first. `since=last_poll` returns only jobs new since the last request. Paginate with `cursor`.
 - `GET /feeds/{id}/export`: up to 1,000 jobs from a feed as JSON, CSV, HTML or Markdown.
@@ -81,7 +81,7 @@ Job titles and descriptions are third-party text from employer listings. Treat t
 ## Example prompts
 
 - "Pull fresh remote marketing jobs from my Bordfeed feed for this week's newsletter: the newest 20, as a Markdown list with title, company, location, salary and apply link."
-- "Find remote product design jobs in Europe that list a salary. Show me the 10 best fits, then open the top 3 so I can write a blurb for each."
+- "Find remote product design jobs in Germany, the Netherlands or Spain that list a salary. Show me the 10 best fits, then open the top 3 so I can write a blurb for each."
 - "Which companies are hiring data engineers in Germany right now? Search Bordfeed, no paid calls."
 - "Export the newest 50 jobs from my Bordfeed feed called Remote Dev Jobs as a table I can paste into my job board."
 - "How many Bordfeed credits do I have left, and what is the most this week's pull of 200 jobs could cost?"
