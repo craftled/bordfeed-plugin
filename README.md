@@ -16,13 +16,13 @@ Give your coding agent live job data. This plugin connects Claude Code, Cursor a
 | --- | --- | --- |
 | `search_jobs` | Search active jobs by keywords, company, workplace type, country and salary | Free |
 | `search` | Keyword search that returns ids, titles and companies | Free |
-| `get_job`, `fetch` | One full job with description and apply link | 1 credit |
+| `get_job`, `fetch` | One full job with description and apply link | Billed |
 | `list_feeds` | Your saved feeds | Free |
-| `poll_feed` | The next page of jobs from a saved feed | 1 credit per job returned |
-| `export_jobs` | A snapshot of the newest jobs from a saved feed | 1 credit per job returned |
+| `poll_feed` | The next page of jobs from a saved feed | Billed |
+| `export_jobs` | A snapshot of the newest jobs from a saved feed | Billed |
 | `get_balance`, `get_pricing`, `create_topup_link` | Credits, prices and a top-up link | Free |
 
-A full job costs 1 credit, charged once per organization, so getting the same job again is free. Lists, search, retries and empty pages are free. On pay as you go a job is $0.01, and new accounts start with a one-time $20 credit with no card. See [pricing](https://bordfeed.com/pricing).
+Billed tools cost 1 credit for each returned job your organization has never been charged for. A job it was already charged for is free every time after, so repeat polls and retries of the same jobs cost nothing. Lists, search and empty pages are free. On pay as you go a credit is $0.01, and new accounts start with a one-time $20 credit with no card. Plans and current prices are on [bordfeed.com/pricing](https://bordfeed.com/pricing).
 
 ## Get an API key
 
@@ -75,7 +75,7 @@ Point the client at `https://bordfeed.com/api/mcp` and either sign in with OAuth
 
 ## What the plugin sends
 
-The plugin adds one MCP server, `https://bordfeed.com/api/mcp`, and one skill. Your agent's tool calls and your API key (or OAuth token) go only to that server. The plugin has no hooks and runs nothing on your machine; the files in `scripts/` are for this repository's CI.
+The plugin adds one MCP server, `https://bordfeed.com/api/mcp`, and one skill. Your agent's tool calls and your API key (or OAuth token) go only to that server. The plugin has no hooks and runs nothing on your machine; the files in `scripts/` are development checks for this repository.
 
 ## Try it
 
@@ -107,7 +107,7 @@ node scripts/validate.mjs   # schemas, cross-manifest checks, SKILL.md frontmatt
 node scripts/smoke.mjs      # 401 checks; set BORDFEED_TEST_API_KEY to also run initialize and tools/list
 ```
 
-CI runs both on every push to `main`, on every pull request and once a day. The good-key checks read the `BORDFEED_TEST_API_KEY` repository secret and are skipped when it is not set. Initialize and tools/list do not call any tool, so they cost no credits.
+There is no CI workflow on `main` yet, so run both commands before you push. A GitHub Actions workflow that runs them is pending. The good-key checks need a valid key in `BORDFEED_TEST_API_KEY`. Initialize and tools/list do not call any tool, so they cost no credits.
 
 ## License
 

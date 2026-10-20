@@ -20,7 +20,7 @@ const NAME = "bordfeed";
 const NAME_PATTERN = /^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
 
 async function loadSchema(url) {
-	const res = await fetch(url, { redirect: "follow" });
+	const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(20_000) });
 	if (!res.ok) throw new Error(`could not fetch schema ${url}: HTTP ${res.status}`);
 	return res.json();
 }

@@ -18,6 +18,7 @@ const EXPECTED_TOOLS = [
 ];
 
 let failures = 0;
+let skipped = 0;
 const pass = (msg) => console.log(`ok   ${msg}`);
 const fail = (msg) => {
 	failures += 1;
@@ -119,9 +120,18 @@ async function main() {
 
 	if (!key) {
 		const event = process.env.GITHUB_EVENT_NAME;
-		const note = "skip good-key checks: BORDFEED_TEST_API_KEY is not set";
-		// Fork pull requests never get secrets; anywhere else a missing key is worth flagging.
-		console.log(event && event !== "pull_request" ? `::warning::${note}` : note);
+		const missing = "BORDFEED_TEST_API_KEY is not set, so initialize and tools/list were NOT tested";
+		if (event === "pull_request") {
+			// Fork pull requests never get repository secrets.
+			skipped += 1;
+			console.log(`::notice::SKIP good-key checks on a pull request: ${missing}`);
+		} else if (event) {
+			// push, schedule and workflow_dispatch must exercise the real key.
+			fail(`good-key checks on ${event}: ${missing}. Add the repository secret.`);
+		} else {
+			skipped += 1;
+			console.log(`SKIP good-key checks: ${missing}`);
+		}
 		return;
 	}
 
@@ -155,4 +165,8 @@ try {
 } catch (error) {
 	fail(`unexpected error: ${error.message}`);
 }
-if (failures > 0) process.exit(1);
+if (failures > 0) {
+	console.error(`RESULT: FAIL (${failures} failed${skipped ? `, ${skipped} skipped` : ""})`);
+	process.exit(1);
+}
+console.log(skipped ? `RESULT: PARTIAL (${skipped} check group skipped, not passed)` : "RESULT: PASS (all checks ran)");
