@@ -121,7 +121,7 @@ node scripts/validate.mjs   # schemas, cross-manifest checks, SKILL.md frontmatt
 node scripts/smoke.mjs      # 401 checks; set BORDFEED_TEST_API_KEY to also run initialize and tools/list
 ```
 
-There is no CI workflow on `main` yet, so run both commands before you push. A GitHub Actions workflow that runs them is pending. The good-key checks need a valid key in `BORDFEED_TEST_API_KEY` (a CI test key; the plugin itself uses OAuth). Initialize and tools/list do not call any tool, so they cost no credits.
+CI (`.github/workflows/ci.yml`) runs both on every push to `main`, on every pull request and once a day. The good-key checks read the `BORDFEED_TEST_API_KEY` repository secret (a CI test key; the plugin itself uses OAuth): without it, pushes and scheduled runs fail, and pull requests from forks, which never get secrets, show a skip. Initialize and tools/list do not call any tool, so they cost no credits.
 
 ## License
 
