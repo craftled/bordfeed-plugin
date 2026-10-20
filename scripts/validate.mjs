@@ -70,24 +70,26 @@ if (portableMcp.includes("${")) fail("mcp.json", "must not contain ${...} placeh
 for (const [name, server] of Object.entries(servers["mcp.json"] ?? {})) {
 	for (const key of ["headers", "env"]) if (server?.[key]) fail("mcp.json", `server ${name} must not set ${key}; auth is client-managed (OAuth)`);
 }
-const expectedAuth = {
-	".claude-plugin/plugin.json": "Bearer ${user_config.api_key}",
-	".cursor-plugin/plugin.json": "Bearer ${BORDFEED_API_KEY}",
-};
-for (const [file, auth] of Object.entries(expectedAuth)) {
-	if (servers[file]?.bordfeed?.headers?.Authorization !== auth) fail(file, `Authorization header must be "${auth}"`);
+// OAuth first: Claude Code turns off its OAuth flow when an Authorization
+// header is set, and URL-only config is how Cursor signs in with OAuth. So no
+// client manifest carries headers, env, placeholders or a key setting; the API
+// key is a documented manual backup (README), never shipped in a manifest.
+for (const file of [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"]) {
+	const raw = readFileSync(file, "utf8");
+	if (raw.includes("${")) fail(file, "must not contain ${...} placeholders; auth is OAuth");
+	for (const [name, server] of Object.entries(servers[file] ?? {})) {
+		for (const key of ["headers", "env"]) if (server?.[key]) fail(file, `server ${name} must not set ${key}; auth is OAuth`);
+	}
 }
-const claudeKey = manifests[".claude-plugin/plugin.json"].userConfig?.api_key;
-if (claudeKey?.sensitive !== true || claudeKey?.required !== true) {
-	fail(".claude-plugin/plugin.json", "userConfig.api_key must be required and sensitive");
-}
+if (manifests[".claude-plugin/plugin.json"].userConfig) fail(".claude-plugin/plugin.json", "must not declare userConfig; auth is OAuth");
+if (manifests[".cursor-plugin/plugin.json"].variables) fail(".cursor-plugin/plugin.json", "must not declare variables; auth is OAuth");
 for (const file of [".claude-plugin/marketplace.json", ".cursor-plugin/marketplace.json"]) {
 	const entry = readJson(file).plugins?.find((p) => p.name === NAME);
 	if (!entry) fail(file, `no plugin entry named ${NAME}`);
 	else if (entry.source !== "./") fail(file, 'plugin source must be "./"');
 }
 
-// 3. Cursor manifest (no published schema): name, relative paths, declared variables.
+// 3. Cursor manifest (no published schema): name and relative paths.
 const cursor = manifests[".cursor-plugin/plugin.json"];
 if (!NAME_PATTERN.test(cursor.name)) fail(".cursor-plugin/plugin.json", "name is not lowercase kebab-case");
 for (const key of ["logo", "skills"]) {
@@ -96,11 +98,6 @@ for (const key of ["logo", "skills"]) {
 	if (value.startsWith("/") || value.includes("..")) fail(".cursor-plugin/plugin.json", `${key} must be a relative path inside the repo`);
 	else if (!existsSync(value)) fail(".cursor-plugin/plugin.json", `${key} path ${value} does not exist`);
 }
-const declared = new Set(Object.keys(cursor.variables?.properties ?? {}));
-for (const [, name] of JSON.stringify(cursor.mcpServers ?? {}).matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g)) {
-	if (!declared.has(name)) fail(".cursor-plugin/plugin.json", `\${${name}} is used but not declared in variables`);
-}
-if (cursor.variables?.type !== "object") fail(".cursor-plugin/plugin.json", 'variables.type must be "object"');
 
 // 4. Skills: Agent Skills frontmatter rules.
 const SKILL_NAME = /^(?!.*--)[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;

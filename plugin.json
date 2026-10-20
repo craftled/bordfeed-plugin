@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "bordfeed",
   "version": "0.1.0",
-  "description": "Search active job listings and pull full jobs from Bordfeed saved feeds through the hosted Bordfeed MCP server.",
+  "description": "Fresh job listings for job boards and career newsletters: search active jobs and pull your saved Bordfeed feeds with apply links through the hosted Bordfeed MCP server. Sign in with OAuth.",
   "author": {
     "name": "Bordfeed",
     "email": "support@bordfeed.com",

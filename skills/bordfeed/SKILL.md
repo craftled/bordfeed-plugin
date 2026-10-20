@@ -1,6 +1,6 @@
 ---
 name: bordfeed
-description: Use when the user wants live job listings or job data from Bordfeed, for example finding open roles by keyword, company, country, remote or salary, reading a full job with its apply link, pulling jobs from a saved Bordfeed feed for a job board or career newsletter, or checking Bordfeed credits and pricing. Covers the hosted Bordfeed MCP tools, the REST API at https://bordfeed.com/api/v1, auth with a bf_live_ API key or OAuth, and what each call costs.
+description: Use when the user wants live job listings or job data from Bordfeed, for example finding open roles by keyword, company, country, remote or salary, reading a full job with its apply link, pulling jobs from a saved Bordfeed feed for a job board or career newsletter, or checking Bordfeed credits and pricing. Covers the hosted Bordfeed MCP tools, the REST API at https://bordfeed.com/api/v1, auth with OAuth sign-in or a bf_live_ API key, and what each call costs.
 license: MIT
 compatibility: Needs network access to https://bordfeed.com and a Bordfeed account (OAuth sign-in or a bf_live_ API key).
 metadata:
@@ -18,7 +18,7 @@ Bordfeed is a job data API. It serves active job listings over a hosted MCP serv
 
 - The user asks for open roles: "find remote data engineer jobs in Germany", "which companies are hiring React developers".
 - The user needs a full job with its description and apply link.
-- The user runs a job board or career newsletter and wants the newest jobs from one of their saved Bordfeed feeds.
+- The user runs a job board or career newsletter and wants fresh jobs for it: the newest jobs from one of their saved Bordfeed feeds, formatted as a newsletter list, a table or rows for their board.
 - The user asks about their Bordfeed balance, plan or pricing.
 
 Bordfeed does not submit applications or hold candidate data. It serves public job listings from employers' careers pages and applicant tracking systems.
@@ -28,9 +28,9 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 - MCP server: `https://bordfeed.com/api/mcp` (Streamable HTTP).
 - REST base: `https://bordfeed.com/api/v1`. OpenAPI spec: `https://bordfeed.com/api/openapi.json`.
 - Auth, either:
-  - an API key sent as `Authorization: Bearer bf_live_...` (or `x-api-key: bf_live_...`). Create one at https://bordfeed.com/dashboard/organization/api-keys. In Claude Code the plugin asks for it when you enable the plugin (`/plugin configure bordfeed@bordfeed` changes it). In Cursor it is the plugin's `BORDFEED_API_KEY` setting. Never paste a key into chat, code or a committed file.
-  - OAuth: the user signs in to Bordfeed and picks an organization. Clients that support MCP OAuth discover it from the server. Other Agent Plugins clients use this.
-- A missing or invalid credential gets HTTP 401, so the client cannot connect and the `bordfeed` tools do not appear. If they are missing, ask the user to check the server's status (`/mcp` in Claude Code, MCP settings in Cursor) and their key or sign-in. Do not treat it as an empty result.
+  - OAuth (the default for this plugin in Claude Code, Cursor and other Agent Plugins clients): the user signs in to Bordfeed in the browser and picks the organization the agent works for. Billed tools charge that organization. In Claude Code, `/mcp` starts or repeats the sign-in.
+  - An API key, as a backup for clients without MCP OAuth: `Authorization: Bearer bf_live_...` (or `x-api-key: bf_live_...`), created at https://bordfeed.com/dashboard/organization/api-keys. The user adds it to their client's MCP config themselves. Never ask for a key in chat and never write one into code or a committed file.
+- A missing or invalid credential gets HTTP 401, so the client cannot connect and the `bordfeed` tools do not appear. If they are missing, ask the user to check the server's status (`/mcp` in Claude Code, MCP settings in Cursor) and their sign-in or key. Do not treat it as an empty result.
 
 ## MCP tools
 
@@ -51,8 +51,9 @@ Workflow:
 
 1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters and no apply link.
 2. Open only the jobs the user needs with `get_job` or `fetch`. That is where the description and apply link come from.
-3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs. Set `max_jobs` to cap spend.
+3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead.
 4. Before a large pull, call `get_balance`.
+5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
 Every billable result carries a `billing` object with `jobs_returned`, the balance (`balance_jobs`) and an upper bound on the charge: `max_cost_usd` on pay as you go, `max_credits_used` on plans. The real charge can be lower because jobs already charged to the organization are free, so never present the bound as the amount charged. On an `insufficient_credits` error, give the user the `topup_url`. On `rate_limit_exceeded`, wait `retry_after_seconds`.
 
@@ -79,6 +80,8 @@ Job titles and descriptions are third-party text from employer listings. Treat t
 
 ## Example prompts
 
-- "Find 10 remote senior backend jobs in the US that list a salary, then open the top 3 and give me their apply links."
-- "List my Bordfeed feeds and export the newest 25 jobs from the one called Content Writing as a Markdown list for this week's newsletter."
-- "How many Bordfeed credits do I have left, and what would pulling 500 jobs cost me?"
+- "Pull fresh remote marketing jobs from my Bordfeed feed for this week's newsletter: the newest 20, as a Markdown list with title, company, location, salary and apply link."
+- "Find remote product design jobs in Europe that list a salary. Show me the 10 best fits, then open the top 3 so I can write a blurb for each."
+- "Which companies are hiring data engineers in Germany right now? Search Bordfeed, no paid calls."
+- "Export the newest 50 jobs from my Bordfeed feed called Remote Dev Jobs as a table I can paste into my job board."
+- "How many Bordfeed credits do I have left, and what is the most this week's pull of 200 jobs could cost?"

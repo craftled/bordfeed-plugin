@@ -2,7 +2,7 @@
 // Always: no key and a bad key must get HTTP 401 on initialize.
 // With BORDFEED_TEST_API_KEY set: initialize (Bearer and x-api-key) and tools/list
 // must succeed and list the expected tools. Neither calls a tool, so no credits are used.
-const ENDPOINT = process.env.BORDFEED_MCP_URL ?? "https://bordfeed.com/api/mcp";
+const ENDPOINT = process.env.BORDFEED_MCP_URL || "https://bordfeed.com/api/mcp";
 const TIMEOUT_MS = 20_000;
 const EXPECTED_TOOLS = [
 	"search",

@@ -2,7 +2,7 @@
   "name": "bordfeed",
   "displayName": "Bordfeed",
   "version": "0.1.0",
-  "description": "Search active job listings and pull full jobs from Bordfeed saved feeds through the hosted Bordfeed MCP server.",
+  "description": "Fresh job listings for job boards and career newsletters: search active jobs and pull your saved Bordfeed feeds with apply links through the hosted Bordfeed MCP server. Sign in with OAuth.",
   "author": {
     "name": "Bordfeed",
     "email": "support@bordfeed.com"
@@ -13,23 +13,9 @@
   "keywords": ["bordfeed", "jobs", "job-board", "job-data", "careers", "mcp", "api"],
   "logo": "assets/logo.svg",
   "skills": "./skills/",
-  "variables": {
-    "type": "object",
-    "properties": {
-      "BORDFEED_API_KEY": {
-        "type": "string",
-        "title": "Bordfeed API key",
-        "description": "A bf_live_ key from https://bordfeed.com/dashboard/organization/api-keys"
-      }
-    },
-    "required": ["BORDFEED_API_KEY"]
-  },
   "mcpServers": {
     "bordfeed": {
-      "url": "https://bordfeed.com/api/mcp",
-      "headers": {
-        "Authorization": "Bearer ${BORDFEED_API_KEY}"
-      }
+      "url": "https://bordfeed.com/api/mcp"
     }
   }
 }
