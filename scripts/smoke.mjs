@@ -1,8 +1,9 @@
 // Live smoke test against the hosted Bordfeed MCP server.
 // Always: no key and a bad key must get HTTP 401 on initialize.
-// With BORDFEED_TEST_API_KEY set: initialize and tools/list must succeed and list the expected tools.
-// Initialize and tools/list never call a tool, so they cost no credits.
-const URL = process.env.BORDFEED_MCP_URL ?? "https://bordfeed.com/api/mcp";
+// With BORDFEED_TEST_API_KEY set: initialize (Bearer and x-api-key) and tools/list
+// must succeed and list the expected tools. Neither calls a tool, so no credits are used.
+const ENDPOINT = process.env.BORDFEED_MCP_URL ?? "https://bordfeed.com/api/mcp";
+const TIMEOUT_MS = 20_000;
 const EXPECTED_TOOLS = [
 	"search",
 	"fetch",
@@ -23,9 +24,12 @@ const fail = (msg) => {
 	console.error(`FAIL ${msg}`);
 };
 
-function rpc(method, params, id) {
-	return { jsonrpc: "2.0", id, method, ...(params ? { params } : {}) };
-}
+const rpc = (method, params, id) => ({
+	jsonrpc: "2.0",
+	...(id === undefined ? {} : { id }),
+	method,
+	...(params ? { params } : {}),
+});
 
 const initialize = rpc(
 	"initialize",
@@ -38,7 +42,7 @@ const initialize = rpc(
 );
 
 async function post(body, headers = {}) {
-	const res = await fetch(URL, {
+	const res = await fetch(ENDPOINT, {
 		method: "POST",
 		headers: {
 			"content-type": "application/json",
@@ -46,23 +50,35 @@ async function post(body, headers = {}) {
 			...headers,
 		},
 		body: JSON.stringify(body),
+		signal: AbortSignal.timeout(TIMEOUT_MS),
 	});
 	const text = await res.text();
-	return { status: res.status, headers: res.headers, message: parseMessage(text) };
+	return { status: res.status, headers: res.headers, message: findMessage(text, body.id) };
 }
 
-// Streamable HTTP answers with JSON or a single SSE event.
-function parseMessage(text) {
-	const data = text
-		.split("\n")
-		.filter((line) => line.startsWith("data:"))
-		.map((line) => line.slice(5).trim())
-		.join("");
+// Streamable HTTP answers with one JSON body or an SSE stream. In a stream,
+// each event's data lines join with "\n", and the response is the event whose
+// id matches the request (notifications may come first).
+function findMessage(text, id) {
+	const candidates = [];
 	try {
-		return JSON.parse(data || text);
+		candidates.push(JSON.parse(text));
 	} catch {
-		return null;
+		for (const event of text.split(/\r?\n\r?\n/)) {
+			const data = event
+				.split(/\r?\n/)
+				.filter((line) => line.startsWith("data:"))
+				.map((line) => line.slice(5).replace(/^ /, ""))
+				.join("\n");
+			if (!data) continue;
+			try {
+				candidates.push(JSON.parse(data));
+			} catch {
+				// Not JSON: skip this event.
+			}
+		}
 	}
+	return candidates.flat().find((m) => m && m.id === id) ?? null;
 }
 
 async function expect401(label, headers) {
@@ -74,36 +90,69 @@ async function expect401(label, headers) {
 	pass(`${label}: 401 with WWW-Authenticate`);
 }
 
-await expect401("no key", {});
-await expect401("bad bf_live_ key", { authorization: "Bearer bf_live_invalid_smoke_test_key" });
-await expect401("bad x-api-key", { "x-api-key": "bf_live_invalid_smoke_test_key" });
+async function initializeWith(label, headers) {
+	const res = await post(initialize, headers);
+	const info = res.message?.result?.serverInfo;
+	if (res.status !== 200 || !info) {
+		fail(`${label}: expected 200 with serverInfo, got ${res.status}`);
+		return null;
+	}
+	pass(`${label}: ${info.name} ${info.version}, protocol ${res.message.result.protocolVersion}`);
+	return res;
+}
 
-const key = process.env.BORDFEED_TEST_API_KEY;
-if (!key) {
-	console.log("skip good-key checks: BORDFEED_TEST_API_KEY is not set");
-} else {
+function keyMayGoTo(endpoint) {
+	const url = new globalThis.URL(endpoint);
+	if (url.protocol === "https:" && url.hostname === "bordfeed.com") return true;
+	return url.protocol === "http:" && ["127.0.0.1", "localhost"].includes(url.hostname);
+}
+
+async function main() {
+	const key = process.env.BORDFEED_TEST_API_KEY;
+	if (key && !keyMayGoTo(ENDPOINT)) {
+		fail(`refusing to send BORDFEED_TEST_API_KEY to ${ENDPOINT}`);
+		return;
+	}
+	await expect401("no key", {});
+	await expect401("bad bf_live_ key", { authorization: "Bearer bf_live_invalid_smoke_test_key" });
+	await expect401("bad x-api-key", { "x-api-key": "bf_live_invalid_smoke_test_key" });
+
+	if (!key) {
+		const event = process.env.GITHUB_EVENT_NAME;
+		const note = "skip good-key checks: BORDFEED_TEST_API_KEY is not set";
+		// Fork pull requests never get secrets; anywhere else a missing key is worth flagging.
+		console.log(event && event !== "pull_request" ? `::warning::${note}` : note);
+		return;
+	}
+
+	await initializeWith("initialize with x-api-key", { "x-api-key": key });
 	const auth = { authorization: `Bearer ${key}` };
-	const init = await post(initialize, auth);
-	if (init.status !== 200 || !init.message?.result?.serverInfo) {
-		fail(`initialize with key: expected 200 with serverInfo, got ${init.status}`);
+	const init = await initializeWith("initialize with Bearer key", auth);
+	if (!init) return;
+
+	const session = init.headers.get("mcp-session-id");
+	const listHeaders = {
+		...auth,
+		"mcp-protocol-version": init.message.result.protocolVersion,
+		...(session ? { "mcp-session-id": session } : {}),
+	};
+	const initialized = await post(rpc("notifications/initialized"), listHeaders);
+	if (initialized.status >= 400) {
+		fail(`notifications/initialized: got ${initialized.status}`);
+	}
+	const list = await post(rpc("tools/list", undefined, 2), listHeaders);
+	const names = list.message?.result?.tools?.map((t) => t.name) ?? [];
+	const missing = EXPECTED_TOOLS.filter((t) => !names.includes(t));
+	if (list.status !== 200 || missing.length > 0) {
+		fail(`tools/list: status ${list.status}, missing ${missing.join(", ") || "none"}`);
 	} else {
-		pass(`initialize with key: ${init.message.result.serverInfo.name} ${init.message.result.serverInfo.version}, protocol ${init.message.result.protocolVersion}`);
-		const session = init.headers.get("mcp-session-id");
-		const protocol = init.message.result.protocolVersion;
-		const listHeaders = {
-			...auth,
-			"mcp-protocol-version": protocol,
-			...(session ? { "mcp-session-id": session } : {}),
-		};
-		const list = await post(rpc("tools/list", undefined, 2), listHeaders);
-		const names = list.message?.result?.tools?.map((t) => t.name) ?? [];
-		const missing = EXPECTED_TOOLS.filter((t) => !names.includes(t));
-		if (list.status !== 200 || missing.length > 0) {
-			fail(`tools/list: status ${list.status}, missing ${missing.join(", ") || "none"}`);
-		} else {
-			pass(`tools/list: ${names.length} tools, all ${EXPECTED_TOOLS.length} expected tools present`);
-		}
+		pass(`tools/list: ${names.length} tools, all ${EXPECTED_TOOLS.length} expected tools present`);
 	}
 }
 
+try {
+	await main();
+} catch (error) {
+	fail(`unexpected error: ${error.message}`);
+}
 if (failures > 0) process.exit(1);

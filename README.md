@@ -26,11 +26,7 @@ A full job costs 1 credit, charged once per organization, so getting the same jo
 
 ## Get an API key
 
-Sign up at https://bordfeed.com, then create a key at https://bordfeed.com/dashboard/organization/api-keys. Keys start with `bf_live_`. Keep the key in an environment variable or your client's secret store, never in a file you commit.
-
-```sh
-export BORDFEED_API_KEY=bf_live_your_key
-```
+Sign up at https://bordfeed.com, then create a key at https://bordfeed.com/dashboard/organization/api-keys. Keys start with `bf_live_`. Keep the key in your client's secret store, never in a file you commit.
 
 ## Install
 
@@ -43,7 +39,7 @@ claude plugin install bordfeed@bordfeed
 
 Or inside Claude Code, run `/plugin marketplace add craftled/bordfeed-plugin` and then `/plugin install bordfeed@bordfeed`.
 
-Start Claude Code from a shell where `BORDFEED_API_KEY` is set. The plugin sends it as `Authorization: Bearer` to the Bordfeed MCP server. Run `/mcp` to check that `bordfeed` is connected. If the variable is missing or the key is wrong, the server answers 401 and the connection fails.
+Claude Code asks for your Bordfeed API key when you enable the plugin and keeps it in secure storage, not in `settings.json`. To set or change it later, run `/plugin configure bordfeed@bordfeed`. The plugin sends the key as `Authorization: Bearer` to the Bordfeed MCP server. Run `/mcp` to check that `bordfeed` is connected. A wrong key gets a 401 and the connection fails.
 
 To sign in with OAuth instead of a key, skip the plugin and add the server directly:
 
@@ -55,13 +51,7 @@ Then run `/mcp` and sign in.
 
 ### Cursor
 
-Install Bordfeed from the Cursor Marketplace, then open Plugins, choose Configure on Bordfeed and set `BORDFEED_API_KEY` to your key.
-
-To try it from a local copy:
-
-```sh
-git clone https://github.com/craftled/bordfeed-plugin ~/.cursor/plugins/local/bordfeed
-```
+Once Bordfeed is listed in the Cursor Marketplace, install it there, then open Plugins, choose Configure on Bordfeed and set `BORDFEED_API_KEY` to your key.
 
 To sign in with OAuth instead, add the server to `~/.cursor/mcp.json` and sign in when Cursor asks:
 
@@ -77,11 +67,15 @@ To sign in with OAuth instead, add the server to `~/.cursor/mcp.json` and sign i
 
 ### Other Agent Plugins clients
 
-The repository root is a standard [Agent Plugins](https://agent-plugins.org) package: `plugin.json`, `mcp.json` and `skills/`. The standard keeps credentials out of package files, so its `mcp.json` has no key. Your client signs you in to Bordfeed with OAuth when it first connects.
+The repository root is a standard [Agent Plugins](https://agent-plugins.org) package: `plugin.json`, `mcp.json` and `skills/`. The standard keeps credentials out of package files, so its `mcp.json` has no key. If your client supports MCP OAuth, it signs you in to Bordfeed when it first connects.
 
 ### Any MCP client
 
 Point the client at `https://bordfeed.com/api/mcp` and either sign in with OAuth or send your key as `Authorization: Bearer bf_live_...` (or `x-api-key: bf_live_...`). Setup steps for ChatGPT, Codex, VS Code and Claude.ai are in the [MCP docs](https://bordfeed.com/docs/mcp).
+
+## What the plugin sends
+
+The plugin adds one MCP server, `https://bordfeed.com/api/mcp`, and one skill. Your agent's tool calls and your API key (or OAuth token) go only to that server. The plugin has no hooks and runs nothing on your machine; the files in `scripts/` are for this repository's CI.
 
 ## Try it
 
@@ -94,7 +88,7 @@ Point the client at `https://bordfeed.com/api/mcp` and either sign in with OAuth
 ```text
 plugin.json                  Agent Plugins manifest
 mcp.json                     Agent Plugins MCP config (OAuth, no credentials)
-.claude-plugin/plugin.json   Claude Code manifest (MCP server with BORDFEED_API_KEY)
+.claude-plugin/plugin.json   Claude Code manifest (MCP server, API key from userConfig)
 .claude-plugin/marketplace.json
 .cursor-plugin/plugin.json   Cursor manifest (MCP server with the BORDFEED_API_KEY variable)
 .cursor-plugin/marketplace.json
@@ -102,17 +96,18 @@ skills/bordfeed/SKILL.md     The Bordfeed skill
 assets/logo.svg
 scripts/validate.mjs         Manifest and skill checks
 scripts/smoke.mjs            Live MCP smoke test
+scripts/package.json         Dev tooling (kept out of the plugin root)
 ```
 
 ## Development
 
 ```sh
-npm ci
-npm run validate   # schemas, cross-manifest checks, SKILL.md frontmatter
-npm run smoke      # 401 checks; set BORDFEED_TEST_API_KEY to also run initialize and tools/list
+npm ci --prefix scripts
+node scripts/validate.mjs   # schemas, cross-manifest checks, SKILL.md frontmatter
+node scripts/smoke.mjs      # 401 checks; set BORDFEED_TEST_API_KEY to also run initialize and tools/list
 ```
 
-CI runs both on every push and pull request, and the smoke test daily. The good-key checks read the `BORDFEED_TEST_API_KEY` repository secret and are skipped when it is not set. Initialize and tools/list do not call any tool, so they cost no credits.
+CI runs both on every push to `main`, on every pull request and once a day. The good-key checks read the `BORDFEED_TEST_API_KEY` repository secret and are skipped when it is not set. Initialize and tools/list do not call any tool, so they cost no credits.
 
 ## License
 

@@ -8,8 +8,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "validate": "node scripts/validate.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "validate": "node validate.mjs",
+    "smoke": "node smoke.mjs"
   },
   "devDependencies": {
     "ajv": "8.20.0",

@@ -45,7 +45,8 @@ const manifests = {
 	".claude-plugin/plugin.json": readJson(".claude-plugin/plugin.json"),
 	".cursor-plugin/plugin.json": readJson(".cursor-plugin/plugin.json"),
 };
-const version = readJson("package.json").version;
+const version = manifests["plugin.json"].version;
+if (readJson("scripts/package.json").version !== version) fail("scripts/package.json", `version must match plugin.json ${version}`);
 for (const [file, m] of Object.entries(manifests)) {
 	if (m.name !== NAME) fail(file, `name must be "${NAME}"`);
 	if (m.version !== version) fail(file, `version ${m.version} does not match package.json ${version}`);
@@ -58,12 +59,23 @@ const servers = {
 for (const [file, s] of Object.entries(servers)) {
 	if (s?.bordfeed?.url !== MCP_URL) fail(file, `mcpServers.bordfeed.url must be ${MCP_URL}`);
 }
-if (servers["mcp.json"].bordfeed.headers) {
-	fail("mcp.json", "Agent Plugins headers are literal and must not carry credentials; auth is client-managed (OAuth)");
+// Agent Plugins headers are literal and clients never expand them, so the
+// portable mcp.json must carry no headers, env or placeholders: OAuth only.
+const portableMcp = readFileSync("mcp.json", "utf8");
+if (portableMcp.includes("${")) fail("mcp.json", "must not contain ${...} placeholders (Agent Plugins does not expand them)");
+for (const [name, server] of Object.entries(servers["mcp.json"] ?? {})) {
+	for (const key of ["headers", "env"]) if (server?.[key]) fail("mcp.json", `server ${name} must not set ${key}; auth is client-managed (OAuth)`);
 }
-for (const file of [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"]) {
-	const auth = servers[file].bordfeed.headers?.Authorization;
-	if (auth !== "Bearer ${BORDFEED_API_KEY}") fail(file, "Authorization header must be the BORDFEED_API_KEY placeholder");
+const expectedAuth = {
+	".claude-plugin/plugin.json": "Bearer ${user_config.api_key}",
+	".cursor-plugin/plugin.json": "Bearer ${BORDFEED_API_KEY}",
+};
+for (const [file, auth] of Object.entries(expectedAuth)) {
+	if (servers[file]?.bordfeed?.headers?.Authorization !== auth) fail(file, `Authorization header must be "${auth}"`);
+}
+const claudeKey = manifests[".claude-plugin/plugin.json"].userConfig?.api_key;
+if (claudeKey?.sensitive !== true || claudeKey?.required !== true) {
+	fail(".claude-plugin/plugin.json", "userConfig.api_key must be required and sensitive");
 }
 for (const file of [".claude-plugin/marketplace.json", ".cursor-plugin/marketplace.json"]) {
 	const entry = readJson(file).plugins?.find((p) => p.name === NAME);
@@ -96,7 +108,7 @@ for (const dir of skillDirs) {
 		fail(file, "missing");
 		continue;
 	}
-	const match = readFileSync(file, "utf8").match(/^---\n([\s\S]*?)\n---\n/);
+	const match = readFileSync(file, "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
 	if (!match) {
 		fail(file, "missing YAML frontmatter");
 		continue;
@@ -108,25 +120,40 @@ for (const dir of skillDirs) {
 		fail(file, `frontmatter is not valid YAML: ${error.message}`);
 		continue;
 	}
+	if (fm === null || typeof fm !== "object" || Array.isArray(fm)) {
+		fail(file, "frontmatter must be a YAML mapping");
+		continue;
+	}
 	const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
 	for (const key of Object.keys(fm)) if (!allowed.has(key)) fail(file, `unknown frontmatter field ${key}`);
 	if (typeof fm.name !== "string" || !SKILL_NAME.test(fm.name)) fail(file, "name must be 1-64 lowercase letters, digits and single hyphens");
 	if (fm.name !== dir) fail(file, `name "${fm.name}" must match its directory "${dir}"`);
 	if (typeof fm.description !== "string" || fm.description.length < 1 || fm.description.length > 1024) fail(file, "description must be 1-1024 characters");
 	if (fm.compatibility !== undefined && (typeof fm.compatibility !== "string" || fm.compatibility.length > 500)) fail(file, "compatibility must be a string of at most 500 characters");
-	if (fm.metadata !== undefined) {
+	if (fm.metadata !== undefined && (fm.metadata === null || typeof fm.metadata !== "object" || Array.isArray(fm.metadata))) {
+		fail(file, "metadata must be a mapping of strings");
+	} else if (fm.metadata !== undefined) {
 		for (const [k, v] of Object.entries(fm.metadata)) if (typeof v !== "string") fail(file, `metadata.${k} must be a string`);
 	}
 }
 
 // 5. Repo-wide text rules: no em dashes, no committed API keys.
+// Claude Code installs a plugin-root package.json lockfile on every user's machine.
+for (const file of ["package.json", "package-lock.json", "bun.lock", "bun.lockb", "npm-shrinkwrap.json"]) {
+	if (existsSync(file)) fail(file, "dev tooling belongs in scripts/, not the plugin root");
+}
+
+const MANIFEST_COUNT = 6;
 const tracked = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8" })
 	.split("\n")
-	.filter((f) => f && existsSync(f) && !f.endsWith(".svg") && f !== "package-lock.json");
+	.filter((f) => f && existsSync(f) && !f.endsWith(".svg") && !f.endsWith("package-lock.json"));
 for (const file of tracked) {
 	const text = readFileSync(file, "utf8");
 	if (text.includes("\u2014")) fail(file, "contains an em dash");
-	if (/bf_(live|test)_[A-Za-z0-9]{16,}/.test(text)) fail(file, "looks like it contains a Bordfeed API key");
+	const PLACEHOLDERS = new Set(["bf_live_your_key", "bf_live_invalid_smoke_test_key"]);
+	for (const [candidate] of text.matchAll(/bf_(?:live|test)_[A-Za-z0-9_-]{8,}/g)) {
+		if (!PLACEHOLDERS.has(candidate)) fail(file, "looks like it contains a Bordfeed API key");
+	}
 }
 
 if (errors.length > 0) {
@@ -134,4 +161,4 @@ if (errors.length > 0) {
 	for (const e of errors) console.error(`- ${e}`);
 	process.exit(1);
 }
-console.log(`Validation passed: 6 manifests, ${skillDirs.length} skill(s), ${tracked.length} files checked.`);
+console.log(`Validation passed: ${MANIFEST_COUNT} manifests, ${skillDirs.length} skill(s), ${tracked.length} files checked.`);
