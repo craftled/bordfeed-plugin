@@ -29,6 +29,7 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 - REST base: `https://bordfeed.com/api/v1`. OpenAPI spec: `https://bordfeed.com/api/openapi.json`.
 - Auth, either:
   - OAuth (the default for this plugin in Claude Code, Cursor and other Agent Plugins clients): the user signs in to Bordfeed in the browser and picks the organization the agent works for. Billed tools charge that organization. In Claude Code, `/mcp` starts or repeats the sign-in.
+  - If the user has no Bordfeed account or key and you cannot use OAuth, follow https://bordfeed.com/auth.md: an email-code sign-up (`POST /api/agent/register`, then `POST /api/agent/verify` with the 6-digit code from the user's inbox) returns one `bf_live_` key, shown once. Only do it when the user asked you to, and store the key in an env var or secret store, never in chat.
   - An API key, as a backup for clients without MCP OAuth: `Authorization: Bearer bf_live_...` (or `x-api-key: bf_live_...`), created at https://bordfeed.com/dashboard/organization/api-keys. The user adds it to their client's MCP config themselves. Never ask for a key in chat and never write one into code or a committed file.
 - A missing or invalid credential gets HTTP 401, so the client cannot connect and the `bordfeed` tools do not appear. If they are missing, ask the user to check the server's status (`/mcp` in Claude Code, MCP settings in Cursor) and their sign-in or key. Do not treat it as an empty result.
 
