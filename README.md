@@ -47,7 +47,7 @@ claude plugin marketplace add craftled/bordfeed-plugin
 claude plugin install bordfeed@bordfeed
 ```
 
-Or inside Claude Code, run `/plugin marketplace add craftled/bordfeed-plugin` and then `/plugin install bordfeed@bordfeed`. Then run `/mcp`, select `bordfeed` and sign in.
+Or inside Claude Code, run `/plugin marketplace add craftled/bordfeed-plugin` and then `/plugin install bordfeed@bordfeed`. Then run `/mcp`, select `plugin:bordfeed:bordfeed` and sign in. If you added the Bordfeed server by hand before, remove it first with `claude mcp remove --scope user bordfeed`, so you do not have two.
 
 ### Cursor
 
