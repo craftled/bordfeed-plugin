@@ -42,12 +42,22 @@ You sign in with your Bordfeed account (OAuth). There is no key to copy. The fir
 
 ### Claude Code
 
+If you added the Bordfeed server by hand before, remove it first in a terminal, so `/mcp` shows only the plugin's server (use the scope you added it with):
+
+```sh
+claude mcp remove --scope user bordfeed
+```
+
+Then install the plugin:
+
 ```sh
 claude plugin marketplace add craftled/bordfeed-plugin
 claude plugin install bordfeed@bordfeed
 ```
 
-Or inside Claude Code, run `/plugin marketplace add craftled/bordfeed-plugin` and then `/plugin install bordfeed@bordfeed`. Then run `/mcp`, select `plugin:bordfeed:bordfeed` and sign in. If you added the Bordfeed server by hand before, remove it first with `claude mcp remove --scope user bordfeed`, so you do not have two.
+Or inside Claude Code, run `/plugin marketplace add craftled/bordfeed-plugin` and then `/plugin install bordfeed@bordfeed`.
+
+After either install, run `/mcp` in Claude Code, select `plugin:bordfeed:bordfeed` and sign in.
 
 ### Cursor
 
