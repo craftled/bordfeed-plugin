@@ -103,7 +103,7 @@ A wrong key or a revoked sign-in gets HTTP 401 and the `bordfeed` tools do not a
 
 ### If you have no API key
 
-If you are an agent and the person has no Bordfeed account or key yet, read https://bordfeed.com/auth.md. It describes an email-code sign-up that needs no browser: `POST /api/agent/register` with the person's email and your agent name sends a 6-digit code to that inbox, and `POST /api/agent/verify` with the code returns one `bf_live_` API key, shown once. Read the code from the inbox if the person gave you access, or ask them to read it out. Only do this for a person who asked you to. Store the key in an env var or secret store, never in chat or a committed file, then use it as in the backup setup above.
+This is for agents whose client cannot do MCP OAuth. Plugin installs in Claude Code and Cursor should keep using browser sign-in above, which also creates new accounts. If the person has no Bordfeed account or key yet, read https://bordfeed.com/auth.md. It describes an email-code sign-up that needs no browser: `POST /api/agent/register` with the person's email and your `agent_name` sends a 6-digit code to that inbox, and `POST /api/agent/verify` with the `registration_id` from the register response and the code returns one `bf_live_` API key, shown once. Read the code from the inbox if the person gave you access, or ask them for the code. Only do this for a person who asked you to. Store the key in an env var or secret store, never in chat, code or a committed file, then use it as in the backup setup above.
 
 ## What the plugin sends
 
