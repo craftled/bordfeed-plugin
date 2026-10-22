@@ -51,7 +51,13 @@ Or inside Claude Code, run `/plugin marketplace add craftled/bordfeed-plugin` an
 
 ### Cursor
 
-Once Bordfeed is listed in the Cursor Marketplace, install it there. Cursor asks you to sign in to Bordfeed the first time it connects.
+In Cursor 2.5 or later, open a new Agent chat and type the full command (it does not show in autocomplete):
+
+```text
+/add-plugin bordfeed@https://github.com/craftled/bordfeed-plugin
+```
+
+Cursor asks you to sign in to Bordfeed the first time it connects.
 
 ### Other Agent Plugins clients
 
