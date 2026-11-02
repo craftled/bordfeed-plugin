@@ -5,7 +5,7 @@ license: MIT
 compatibility: Needs network access to https://bordfeed.com and a Bordfeed account (OAuth sign-in or a bf_live_ API key).
 metadata:
   author: bordfeed
-  version: "0.2.0"
+  version: "0.3.0"
   homepage: https://bordfeed.com/docs
   source: https://github.com/craftled/bordfeed-plugin
 ---
@@ -37,9 +37,10 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 
 | Tool | Arguments | Cost |
 | --- | --- | --- |
-| `search_jobs` | `query`, `company`, `workplace_type` (e.g. `["remote"]`), `country_code` (ISO alpha-2, e.g. `["US","DE"]`), `has_salary`, `limit` (1 to 25, default 10), `cursor` | Free |
+| `search_jobs` | `query`, `company`, `location` (city or region text), `workplace_type` (e.g. `["remote"]`), `country_code` (ISO alpha-2, e.g. `["US","DE"]`), `role_family` (list), `remote_region` (excludes remote jobs with no stated region), `salary_currency`, `salary_unit`, `min_salary_usd` (yearly USD, at most 2,000,000; only yearly-posted pay in a currency with a USD rate matches), `added_since` (ISO datetime with offset; when Bordfeed added the job, not the employer's posted date), `has_salary`, `limit` (1 to 25, default 10), `cursor` | Free |
 | `search` | `query` | Free. Returns up to 10 `{id, title, company}` |
 | `get_job` | `id` (job id or slug) | Billed (see Billing) |
+| `get_jobs` | `ids` (1 to 25 job ids or slugs), `max_jobs` (1 to 25; caps newly charged jobs, already-opened jobs are still returned), `idempotency_key` | Billed per newly opened job, at the `get_job` price (see Billing) |
 | `fetch` | `id` | Billed (see Billing). Returns `{id, title, text, url, metadata}` |
 | `list_feeds` | none | Free |
 | `poll_feed` | `feed_id`, `limit` (1 to 50, default 10), `cursor`, `max_jobs`, `idempotency_key` | Billed (see Billing) |
@@ -50,13 +51,13 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 
 Workflow:
 
-1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters and no apply link.
-2. Open only the jobs the user needs with `get_job` or `fetch`. That is where the description and apply link come from.
-3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_job` or `fetch` per job; say so before making those calls.
+1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters, structured salary fields and no apply link. `salary_min_usd` and `salary_max_usd` are yearly USD and are set only for yearly pay in a currency with a USD rate, so a null there does not mean the job has no salary.
+2. Open only the jobs the user needs. For several jobs, use one `get_jobs` call (up to 25 ids) instead of one `get_job` per job. It returns the jobs in request order. Jobs your organization already opened are free, and new ones are opened while the balance lasts. The rest come back in `unopened` with a reason (`insufficient_credits`, `max_jobs`, `idempotent_replay` or `meter_unavailable`), and unknown ids in `not_found`. That is where the description (capped at 6,000 characters, with `description_truncated` and `description_length`) and apply link come from.
+3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_jobs` call; say so before making it.
 4. Before a large pull, call `get_balance`.
 5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
-Every billable result carries a `billing` object with `jobs_returned`, the balance (`balance_jobs`) and an upper bound on the charge: `max_cost_usd` on pay as you go, `max_credits_used` on plans. The real charge can be lower because jobs already charged to the organization are free, so never present the bound as the amount charged. On an `insufficient_credits` error, give the user the `topup_url`. On `rate_limit_exceeded`, wait `retry_after_seconds`.
+Every billable result carries a `billing` object with `jobs_returned`, the balance (`balance_jobs`) and an upper bound on the charge: `max_cost_usd` on pay as you go, `max_credits_used` on plans. The real charge can be lower because jobs already charged to the organization are free, so never present the bound as the amount charged. On an `insufficient_credits` error, give the user the `topup_url`. `get_jobs` does not fail when credits run out: it returns what the balance covered plus a `topup` block. On pay as you go that block has a `topup_url` to give the user; on a plan it has only a message. After a `get_jobs` call has charged, a retry with the same `idempotency_key` and ids on the same UTC day returns only the jobs already opened, lists the rest as `idempotent_replay`, never charges again, and marks `billing` with `replayed: true`. A call that charged nothing does not bind the key, so the same key can charge later. To open more after a top-up, use a new key. On `rate_limit_exceeded`, wait `retry_after_seconds`.
 
 ## REST API
 
@@ -70,7 +71,7 @@ Free endpoints include `GET /feeds`, `GET /companies`, `GET /companies/{id}/jobs
 
 ## Billing
 
-- Billed calls (`get_job`, `fetch`, `poll_feed`, `export_jobs`, and the REST endpoints above) cost 1 credit for each returned job your organization has never been charged for, on every plan. A job it was already charged for is free every time after, even after the job changes or closes. So 500 returned jobs cost at most 500 credits ($5 on pay as you go), and less when some were received before.
+- Billed calls (`get_job`, `get_jobs`, `fetch`, `poll_feed`, `export_jobs`, and the REST endpoints above) cost 1 credit for each returned job your organization has never been charged for, on every plan. A job it was already charged for is free every time after, even after the job changes or closes. So 500 returned jobs cost at most 500 credits ($5 on pay as you go), and less when some were received before.
 - Lists, search and empty pages are free. A retry that returns jobs already charged costs nothing, and a retry with the same idempotency key, for the same feed and the same jobs, on the same UTC day records no new charge.
 - Pay as you go: 1 credit is $0.01, with a one-time $20 credit to start (for a verified, non-disposable email) and no card needed.
 - For plans, top-ups and current prices, call `get_pricing` or see https://bordfeed.com/pricing. Do not quote prices from memory.

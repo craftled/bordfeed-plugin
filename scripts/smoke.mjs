@@ -9,6 +9,7 @@ const EXPECTED_TOOLS = [
 	"fetch",
 	"search_jobs",
 	"get_job",
+	"get_jobs",
 	"list_feeds",
 	"poll_feed",
 	"export_jobs",
@@ -37,7 +38,7 @@ const initialize = rpc(
 	{
 		protocolVersion: "2025-06-18",
 		capabilities: {},
-		clientInfo: { name: "bordfeed-plugin-smoke", version: "0.2.0" },
+		clientInfo: { name: "bordfeed-plugin-smoke", version: "0.3.0" },
 	},
 	1,
 );
