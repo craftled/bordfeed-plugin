@@ -9,6 +9,7 @@ const EXPECTED_TOOLS = [
 	"fetch",
 	"search_jobs",
 	"get_job",
+	"get_jobs",
 	"list_feeds",
 	"poll_feed",
 	"export_jobs",

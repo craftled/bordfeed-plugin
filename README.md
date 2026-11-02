@@ -24,9 +24,10 @@ Bordfeed serves public job listings from employers' careers pages and applicant 
 
 | Tool | What it does | Cost |
 | --- | --- | --- |
-| `search_jobs` | Search active jobs by keywords, company, workplace type, country and salary | Free |
+| `search_jobs` | Search active jobs by keywords, company, location, workplace type, country, role family, remote region, salary and date added | Free |
 | `search` | Keyword search that returns ids, titles and companies | Free |
 | `get_job`, `fetch` | One full job with description and apply link | Billed |
+| `get_jobs` | Up to 25 full jobs in one call, opened while your balance lasts | Billed |
 | `list_feeds` | Your saved feeds | Free |
 | `poll_feed` | The next page of jobs from a saved feed | Billed |
 | `export_jobs` | A snapshot of the newest jobs from a saved feed, with apply links | Billed |
