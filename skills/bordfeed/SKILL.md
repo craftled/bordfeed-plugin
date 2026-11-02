@@ -37,10 +37,10 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 
 | Tool | Arguments | Cost |
 | --- | --- | --- |
-| `search_jobs` | `query`, `company`, `location` (city or region text), `workplace_type` (e.g. `["remote"]`), `country_code` (ISO alpha-2, e.g. `["US","DE"]`), `role_family` (list), `remote_region`, `salary_currency`, `salary_unit`, `min_salary_usd` (yearly USD), `added_since` (ISO datetime with offset), `has_salary`, `limit` (1 to 25, default 10), `cursor` | Free |
+| `search_jobs` | `query`, `company`, `location` (city or region text), `workplace_type` (e.g. `["remote"]`), `country_code` (ISO alpha-2, e.g. `["US","DE"]`), `role_family` (list), `remote_region`, `salary_currency`, `salary_unit`, `min_salary_usd` (yearly USD, at most 2,000,000; hourly, monthly, unstated-period and unconverted-currency jobs never match), `added_since` (ISO datetime with offset; when Bordfeed added the job, not the employer's posted date), `has_salary`, `limit` (1 to 25, default 10), `cursor` | Free |
 | `search` | `query` | Free. Returns up to 10 `{id, title, company}` |
 | `get_job` | `id` (job id or slug) | Billed (see Billing) |
-| `get_jobs` | `ids` (1 to 25 job ids or slugs), `max_jobs`, `idempotency_key` | Billed (see Billing). Same price as `get_job` |
+| `get_jobs` | `ids` (1 to 25 job ids or slugs), `max_jobs` (caps newly charged jobs; already-opened jobs are still returned), `idempotency_key` | Billed per newly opened job, at the `get_job` price (see Billing) |
 | `fetch` | `id` | Billed (see Billing). Returns `{id, title, text, url, metadata}` |
 | `list_feeds` | none | Free |
 | `poll_feed` | `feed_id`, `limit` (1 to 50, default 10), `cursor`, `max_jobs`, `idempotency_key` | Billed (see Billing) |
@@ -57,7 +57,7 @@ Workflow:
 4. Before a large pull, call `get_balance`.
 5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
-Every billable result carries a `billing` object with `jobs_returned`, the balance (`balance_jobs`) and an upper bound on the charge: `max_cost_usd` on pay as you go, `max_credits_used` on plans. The real charge can be lower because jobs already charged to the organization are free, so never present the bound as the amount charged. On an `insufficient_credits` error, give the user the `topup_url`. `get_jobs` does not fail when credits run out: it returns what the balance covered plus a `topup` block. On pay as you go that block has a `topup_url` to give the user; on a plan it has only a message. On an idempotent retry the `billing` object has `replayed: true` and the cost is 0. On `rate_limit_exceeded`, wait `retry_after_seconds`.
+Every billable result carries a `billing` object with `jobs_returned`, the balance (`balance_jobs`) and an upper bound on the charge: `max_cost_usd` on pay as you go, `max_credits_used` on plans. The real charge can be lower because jobs already charged to the organization are free, so never present the bound as the amount charged. On an `insufficient_credits` error, give the user the `topup_url`. `get_jobs` does not fail when credits run out: it returns what the balance covered plus a `topup` block. On pay as you go that block has a `topup_url` to give the user; on a plan it has only a message. A `get_jobs` retry with the same `idempotency_key` and ids on the same UTC day returns only the jobs already opened, lists the rest as `idempotent_replay`, and its `billing` has `replayed: true` with `cost_usd` or `credits_used` at 0. To open more after a top-up, use a new key. On `rate_limit_exceeded`, wait `retry_after_seconds`.
 
 ## REST API
 

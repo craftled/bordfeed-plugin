@@ -38,7 +38,7 @@ const initialize = rpc(
 	{
 		protocolVersion: "2025-06-18",
 		capabilities: {},
-		clientInfo: { name: "bordfeed-plugin-smoke", version: "0.2.0" },
+		clientInfo: { name: "bordfeed-plugin-smoke", version: "0.3.0" },
 	},
 	1,
 );
