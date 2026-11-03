@@ -31,9 +31,12 @@ Bordfeed serves public job listings from employers' careers pages and applicant 
 | `list_feeds` | Your saved feeds | Free |
 | `poll_feed` | The next page of jobs from a saved feed | Billed |
 | `export_jobs` | A snapshot of the newest jobs from a saved feed, with apply links | Billed |
+| `create_feed` | Create a saved feed from a plain-language description or explicit filters | Free |
+| `update_feed` | Rename, enable or disable a feed, or replace its filters | Free |
+| `delete_feed` | Permanently delete a feed (confirm first) | Free |
 | `get_balance`, `get_pricing`, `create_topup_link` | Credits, prices and a top-up link | Free |
 
-Saved feeds are the filters you set up in the Bordfeed dashboard (for example "remote marketing jobs in the US"). The agent reads them; it does not create them.
+Saved feeds are named sets of filters (for example "remote marketing jobs in the US"). The agent can read, create, update and delete them. Webhook delivery is set up in the Bordfeed dashboard or the REST API.
 
 Billed tools cost 1 credit for each returned job your organization has never been charged for. A job it was already charged for is free every time after, so pulling the same jobs again for next week's draft costs nothing for those jobs. Lists, search and empty pages are free. On pay as you go a credit is $0.01, and new accounts start with a one-time $20 credit (verified, non-disposable email) with no card. Plans and current prices are on [bordfeed.com/pricing](https://bordfeed.com/pricing).
 

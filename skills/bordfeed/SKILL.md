@@ -1,11 +1,11 @@
 ---
 name: bordfeed
-description: Use when the user wants live job listings or job data from Bordfeed, for example finding open roles by keyword, company, country, remote or salary, reading a full job with its apply link, pulling jobs from a saved Bordfeed feed for a job board or career newsletter, or checking Bordfeed credits and pricing. Covers the hosted Bordfeed MCP tools, the REST API at https://bordfeed.com/api/v1, auth with OAuth sign-in or a bf_live_ API key, and what each call costs.
+description: Use when the user wants live job listings or job data from Bordfeed, for example finding open roles by keyword, company, country, remote or salary, reading a full job with its apply link, pulling jobs from a saved Bordfeed feed for a job board or career newsletter, creating, editing or deleting a saved feed, or checking Bordfeed credits and pricing. Covers the hosted Bordfeed MCP tools, the REST API at https://bordfeed.com/api/v1, auth with OAuth sign-in or a bf_live_ API key, and what each call costs.
 license: MIT
 compatibility: Needs network access to https://bordfeed.com and a Bordfeed account (OAuth sign-in or a bf_live_ API key).
 metadata:
   author: bordfeed
-  version: "0.3.0"
+  version: "0.4.0"
   homepage: https://bordfeed.com/docs
   source: https://github.com/craftled/bordfeed-plugin
 ---
@@ -19,6 +19,7 @@ Bordfeed is a job data API. It serves active job listings over a hosted MCP serv
 - The user asks for open roles: "find remote data engineer jobs in Germany", "which companies are hiring React developers".
 - The user needs a full job with its description and apply link.
 - The user runs a job board or career newsletter and wants fresh jobs for it: the newest jobs from one of their saved Bordfeed feeds, formatted as a newsletter list, a table or rows for their board.
+- The user wants to create, change, pause or delete a saved Bordfeed feed.
 - The user asks about their Bordfeed balance, plan or pricing.
 
 Bordfeed does not submit applications or hold candidate data. It serves public job listings from employers' careers pages and applicant tracking systems.
@@ -45,6 +46,9 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 | `list_feeds` | none | Free |
 | `poll_feed` | `feed_id`, `limit` (1 to 50, default 10), `cursor`, `max_jobs`, `idempotency_key` | Billed (see Billing) |
 | `export_jobs` | `feed_id`, `max_jobs` (1 to 100, default 50), `idempotency_key` | Billed (see Billing) |
+| `create_feed` | `name`, `filters` or `description` (plain language, 3 to 1000 chars, compiled into filters), optional `template_id` (with `filters` only) | Free. Poll delivery |
+| `update_feed` | `feed_id`, `name`, `filters` or `description`, `enabled` | Free. New filters replace the old ones |
+| `delete_feed` | `feed_id` | Free. Permanent; confirm with the user first |
 | `get_balance` | none | Free |
 | `get_pricing` | none | Free |
 | `create_topup_link` | none | Free. Pay as you go only. Returns a link; a human completes checkout |
@@ -53,7 +57,7 @@ Workflow:
 
 1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters, structured salary fields and no apply link. `salary_min_usd` and `salary_max_usd` are yearly USD and are set only for yearly pay in a currency with a USD rate, so a null there does not mean the job has no salary.
 2. Open only the jobs the user needs. For several jobs, use one `get_jobs` call (up to 25 ids) instead of one `get_job` per job. It returns the jobs in request order. Jobs your organization already opened are free, and new ones are opened while the balance lasts. The rest come back in `unopened` with a reason (`insufficient_credits`, `max_jobs`, `idempotent_replay` or `meter_unavailable`), and unknown ids in `not_found`. That is where the description (capped at 6,000 characters, with `description_truncated` and `description_length`) and apply link come from.
-3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. Feeds are created in the Bordfeed dashboard; if the user has none, suggest they create one there, or use `search_jobs` instead. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_jobs` call; say so before making it.
+3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. If the user has no feed, offer to create one with `create_feed` (from their description or explicit filters), show the resulting filters, and confirm before any `delete_feed`. Webhook delivery is still set up in the dashboard or REST API. `search_jobs` also works without a feed. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_jobs` call; say so before making it.
 4. Before a large pull, call `get_balance`.
 5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
