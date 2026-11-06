@@ -1,7 +1,7 @@
 // Validates submission/chatgpt against the OpenAI plugin directory rules and the
 // Bordfeed no-commerce contract. Exits 1 on any error. Passing means the draft is
 // well formed, not that it is ready to submit: blockers are printed at the end.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -135,12 +135,16 @@ if ((ui.capabilities ?? []).length > 20 || (ui.capabilities ?? []).some((c) => c
 }
 
 // 4. Icons ship from the repo's assets folder; the ZIP places them at ./assets.
+// The ZIP packs these paths as they are, so only image files may pass.
+const ICON_PATH = /^\.\/assets\/[\w-]+\.(?:png|jpe?g|webp|svg)$/i;
 for (const field of ["logo", "composerIcon"]) {
 	const path = ui[field];
-	if (typeof path !== "string" || !path.startsWith("./assets/") || path.includes("..")) {
-		fail(PLUGIN, `interface.${field} must be a ./assets/ path`);
+	if (typeof path !== "string" || !ICON_PATH.test(path)) {
+		fail(PLUGIN, `interface.${field} must be an image directly under ./assets/`);
 	} else if (!existsSync(path)) {
 		fail(PLUGIN, `interface.${field} file ${path} does not exist`);
+	} else if (!lstatSync(path).isFile()) {
+		fail(PLUGIN, `interface.${field} must be a regular file, not a link or folder`);
 	} else if (path.endsWith(".svg")) {
 		const viewBox = readFileSync(path, "utf8").match(/viewBox="0 0 (\d+) (\d+)"/);
 		if (!viewBox || viewBox[1] !== viewBox[2] || Number(viewBox[1]) < 48) {
@@ -246,6 +250,10 @@ const CLAIM = new RegExp(
 		String.raw`(?<!\bnot\s)\bsubmitted\s+(?:\w+\s+){0,3}(?:OpenAI|ChatGPT|review)\b`,
 		String.raw`\b(?:we|was|were|been|is|are|have)\s+(?:(?!not\b)\w+\s+)?submitted\b`,
 		String.raw`\bsubmission\s+(?:is\s+)?(?:complete|done|accepted|approved)\b`,
+		String.raw`(?<!\bnot\s)\b(?:available|listed|published)\s+(?:in|on)\s+(?:the\s+)?(?:ChatGPT|OpenAI)\b`,
+		String.raw`\b(?:is|are|was|were|been)\s+(?:(?!not\b)\w+\s+)?(?:approved|accepted)\b|\bstatus:\s*(?:approved|accepted|live|submitted)\b`,
+		String.raw`\b(?:test\s+)?cases?\s+(?:\w+\s+){0,2}pass(?:es|ed)?\b`,
+		String.raw`\bwe(?:'ve|\s+have)\s+submitted\b`,
 	].join("|"),
 	"i",
 );
@@ -272,7 +280,8 @@ for (const file of ["plugin.json", "mcp.json", ".claude-plugin/plugin.json", ".c
 if (plugin.version !== readJson("plugin.json").version) fail(PLUGIN, "version must match the root plugin.json");
 
 // 10. No secrets in any tracked file, so a ZIP build cannot skip this check.
-for (const file of trackedTextFiles()) {
+const iconFiles = [ui.logo, ui.composerIcon].filter((path) => typeof path === "string" && existsSync(path) && lstatSync(path).isFile());
+for (const file of new Set([...trackedTextFiles(), ...iconFiles])) {
 	for (const secret of findSecrets(readFileSync(file, "utf8"))) fail(file, `looks like it contains ${secret}`);
 }
 
