@@ -113,7 +113,7 @@ This is for agents whose client cannot do MCP OAuth. Plugin installs in Claude C
 
 ## What the plugin sends
 
-The plugin adds one MCP server, `https://bordfeed.com/api/mcp`, and one skill. Your agent's tool calls and your OAuth token (or API key) go only to that server. The plugin has no hooks and runs nothing on your machine; the files in `scripts/` are development checks for this repository.
+The plugin adds one MCP server, `https://bordfeed.com/api/mcp`, and one skill. Your agent's tool calls and your OAuth token (or API key) go only to that server. The plugin has no hooks and runs nothing on your machine; the files in `scripts/` are development checks for this repository. `submission/chatgpt/` is draft listing material for the ChatGPT directory; no client loads it.
 
 ## Try it
 
@@ -141,6 +141,9 @@ assets/logo.svg
 scripts/validate.mjs         Manifest and skill checks
 scripts/smoke.mjs            Live MCP smoke test
 scripts/tools.mjs            Tool names the checks expect
+scripts/validate-chatgpt.mjs ChatGPT package checks
+scripts/build-chatgpt-zip.mjs  Local ZIP build for the ChatGPT package
+submission/chatgpt/          Draft ChatGPT directory package and text pack
 scripts/package.json         Dev tooling (kept out of the plugin root)
 ```
 
@@ -150,9 +153,11 @@ scripts/package.json         Dev tooling (kept out of the plugin root)
 npm ci --prefix scripts
 node scripts/validate.mjs   # schemas, cross-manifest checks, SKILL.md frontmatter
 node scripts/smoke.mjs      # 401 checks; set BORDFEED_TEST_API_KEY to also run initialize and tools/list
+node scripts/validate-chatgpt.mjs   # ChatGPT package rules and text pack
+node scripts/build-chatgpt-zip.mjs  # writes dist/bordfeed-chatgpt.zip (ignored by git), uploads nothing
 ```
 
-CI (`.github/workflows/ci.yml`) runs both on every push to `main`, on every pull request and once a day. The good-key checks read the `BORDFEED_TEST_API_KEY` repository secret (a CI test key; the plugin itself uses OAuth): without it, pushes and scheduled runs fail, and pull requests from forks, which never get secrets, show a skip. Initialize and tools/list do not call any tool, so they cost no credits.
+CI (`.github/workflows/ci.yml`) runs the validators and the smoke test on every push to `main`, on every pull request and once a day. The good-key checks read the `BORDFEED_TEST_API_KEY` repository secret (a CI test key; the plugin itself uses OAuth): without it, pushes and scheduled runs fail, and pull requests from forks, which never get secrets, show a skip. Initialize and tools/list do not call any tool, so they cost no credits.
 
 ## License
 
