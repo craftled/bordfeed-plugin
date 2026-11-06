@@ -141,6 +141,7 @@ assets/logo.svg
 scripts/validate.mjs         Manifest and skill checks
 scripts/smoke.mjs            Live MCP smoke test
 scripts/tools.mjs            Tool names the checks expect
+scripts/text-checks.mjs      Secret patterns and the tracked file list
 scripts/validate-chatgpt.mjs ChatGPT package checks
 scripts/build-chatgpt-zip.mjs  Local ZIP build for the ChatGPT package
 submission/chatgpt/          Draft ChatGPT directory package and text pack
