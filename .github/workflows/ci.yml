@@ -28,6 +28,8 @@ jobs:
       - run: npm ci --prefix scripts
       - name: Agent Plugins, Claude Code, Cursor and SKILL.md checks
         run: node scripts/validate.mjs
+      - name: ChatGPT directory package checks
+        run: node scripts/validate-chatgpt.mjs
       - name: Claude Code validator (strict)
         run: |
           npx -y @anthropic-ai/claude-code@2.1.304 plugin validate --strict .
