@@ -16,7 +16,7 @@ const PLUGIN = `${DIR}/plugin.json`;
 const MCP = `${DIR}/mcp.json`;
 const PACK = `${DIR}/REVIEW-PACK.md`;
 const ENDPOINT = "https://bordfeed.com/api/mcp/chatgpt";
-const PRICING_PAGE = "https://bordfeed.com/pricing";
+const PLANS_PAGE = "https://bordfeed.com/plans";
 const SCHEMAS = {
 	[PLUGIN]: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
 	[MCP]: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
@@ -154,7 +154,7 @@ for (const field of ["logo", "composerIcon"]) {
 // positive case may use the exact phrases that say commerce is absent.
 const PROMO = /\bpric(?:e|es|ing)\b|\bfree\b|\btrials?\b|\bdiscounts?\b|\bpromo\w*|\bsubscri\w*|\bupgrades?\b|\bcheckout\b|\btop[- ]?ups?\b|\bbuy(?:s|ing)?\b|\bpurchase[sd]?\b|\bbest\b/i;
 const MONEY = /[$€£¥]\s?\.?\d|\d\s?¢|\b(?:cents?|dollars?|euros?|bucks)\b|\b(?:usd|eur|gbp)(?:\b|\d)/i;
-const NO_COMMERCE_PHRASES = [PRICING_PAGE, "no checkout link", "no USD prices and no price per job"];
+const NO_COMMERCE_PHRASES = [PLANS_PAGE, "no checkout link", "no USD prices and no price per job"];
 const isBuyCase = (c) => /\bbuy\b/i.test(c.prompt ?? "") && /^Declines/.test(c.expected_behavior ?? "");
 const REVIEW_PATH = "/extensions/com.openai/review";
 const namesCommerce = [`${REVIEW_PATH}/commerce_description`, `${REVIEW_PATH}/test_cases/negative/${negative.findIndex(isBuyCase)}/`];
@@ -186,7 +186,7 @@ if (negative.length !== 3) fail(PLUGIN, `needs exactly 3 negative cases, found $
 for (const c of [...positive, ...negative]) {
 	if (!c.description || !c.prompt || !c.expected_behavior) fail(PLUGIN, `case needs description, prompt and expected_behavior: ${c.prompt}`);
 	for (const url of c.expected_behavior?.match(/https?:\/\/\S+?(?=\.?(?:\s|$))/g) ?? []) {
-		if (url !== PRICING_PAGE) fail(PLUGIN, `case links ${url}; only ${PRICING_PAGE} is allowed`);
+		if (url !== PLANS_PAGE) fail(PLUGIN, `case links ${url}; only ${PLANS_PAGE} is allowed`);
 	}
 }
 for (const c of positive) {
@@ -194,11 +194,11 @@ for (const c of positive) {
 	if (tools.length === 0) fail(PLUGIN, `positive case needs tools_triggered: ${c.prompt}`);
 	for (const tool of tools) if (!CHATGPT_TOOLS.includes(tool)) fail(PLUGIN, `${tool} is not a ChatGPT endpoint tool`);
 }
-const coversPricingPage = (c) => c.expected_behavior?.includes(PRICING_PAGE) && c.expected_behavior.includes("no checkout link");
-if (!positive.some((c) => /no credits left/.test(c.expected_behavior ?? "") && coversPricingPage(c))) {
-	fail(PLUGIN, `a positive case must cover running out of credits and ${PRICING_PAGE}`);
+const coversPlansPage = (c) => c.expected_behavior?.includes(PLANS_PAGE) && c.expected_behavior.includes("no checkout link");
+if (!positive.some((c) => /no credits left/.test(c.expected_behavior ?? "") && coversPlansPage(c))) {
+	fail(PLUGIN, `a positive case must cover running out of credits and ${PLANS_PAGE}`);
 }
-if (!negative.some((c) => isBuyCase(c) && coversPricingPage(c))) {
+if (!negative.some((c) => isBuyCase(c) && coversPlansPage(c))) {
 	fail(PLUGIN, "a negative case must decline a request to buy credits");
 }
 

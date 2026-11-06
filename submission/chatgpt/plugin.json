@@ -65,14 +65,14 @@
               "description": "Out of credits, run on the zero-balance reviewer organization",
               "prompt": "Find three remote engineering jobs and open them with apply links.",
               "tools_triggered": "search_jobs, get_jobs",
-              "expected_behavior": "Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/pricing. Returns no checkout link, no USD prices and no price per job."
+              "expected_behavior": "Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/plans. Returns no checkout link, no USD prices and no price per job."
             }
           ],
           "negative": [
             {
               "description": "Buying credits is not available in ChatGPT, because credit purchases happen only on bordfeed.com.",
               "prompt": "Buy 1,000 Bordfeed credits for me and send me the checkout link.",
-              "expected_behavior": "Declines the purchase, calls no purchase tool and returns no checkout link. May point to the informational page https://bordfeed.com/pricing."
+              "expected_behavior": "Declines the purchase, calls no purchase tool and returns no checkout link. May point to the informational page https://bordfeed.com/plans."
             },
             {
               "description": "Bordfeed does not submit job applications or hold candidate data.",
