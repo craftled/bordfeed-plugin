@@ -31,8 +31,10 @@ Bordfeed serves public job listings from employers' careers pages and applicant 
 | `list_feeds` | Your saved feeds | Free |
 | `poll_feed` | The next page of jobs from a saved feed | Billed |
 | `export_jobs` | A snapshot of the newest jobs from a saved feed, with apply links | Billed |
-| `create_feed` | Create a saved feed from a plain-language description or explicit filters | Free |
-| `update_feed` | Rename, enable or disable a feed, or replace its filters | Free |
+| `get_feed` | One saved feed's name, filters, enabled state, delivery mode and template | Free |
+| `list_templates` | Feed templates to start `create_feed` from | Free |
+| `create_feed` | Create a saved feed from a plain-language description, explicit filters or a template | Free |
+| `update_feed` | Rename, enable or disable a feed, or replace its filters (new filters overwrite the old ones) | Free |
 | `delete_feed` | Permanently delete a feed (confirm first) | Free |
 | `get_balance`, `get_pricing`, `create_topup_link` | Credits, prices and a top-up link | Free |
 
@@ -121,6 +123,10 @@ The plugin adds one MCP server, `https://bordfeed.com/api/mcp`, and one skill. Y
 - "Export the newest 50 jobs from my Bordfeed feed called Remote Dev Jobs as a table I can paste into my job board."
 - "How many Bordfeed credits do I have left, and what is the most this week's pull of 200 jobs could cost?"
 
+## Support, privacy and terms
+
+Email support@bordfeed.com or use the [contact page](https://bordfeed.com/contact). The [privacy policy](https://bordfeed.com/privacy) and [terms of service](https://bordfeed.com/terms) cover the hosted service this plugin connects to.
+
 ## Layout
 
 ```text
@@ -134,6 +140,7 @@ skills/bordfeed/SKILL.md     The Bordfeed skill
 assets/logo.svg
 scripts/validate.mjs         Manifest and skill checks
 scripts/smoke.mjs            Live MCP smoke test
+scripts/tools.mjs            Tool names the checks expect
 scripts/package.json         Dev tooling (kept out of the plugin root)
 ```
 

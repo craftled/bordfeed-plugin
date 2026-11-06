@@ -45,19 +45,21 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 | `fetch` | `id` | Billed (see Billing). Returns `{id, title, text, url, metadata}` |
 | `list_feeds` | none | Free |
 | `poll_feed` | `feed_id`, `limit` (1 to 50, default 10), `cursor`, `max_jobs`, `idempotency_key` | Billed (see Billing) |
-| `export_jobs` | `feed_id`, `max_jobs` (1 to 100, default 50), `idempotency_key` | Billed (see Billing) |
-| `create_feed` | `name`, `filters` or `description` (plain language, 3 to 1000 chars, compiled into filters), optional `template_id` (with `filters` only) | Free. Poll delivery |
-| `update_feed` | `feed_id`, `name`, `filters` or `description`, `enabled` | Free. New filters replace the old ones |
+| `export_jobs` | `feed_id`, `format` (`json` or `csv`, default `json`), `include_description`, `max_jobs` (1 to 100, default 50), `idempotency_key` | Billed (see Billing) |
+| `create_feed` | `name`, plus `filters`, `template_id` (alone or with `filters`, which override it) or `description` (plain language, 3 to 1000 chars, compiled into filters; not with `filters` or `template_id`) | Free. Poll delivery |
+| `get_feed` | `feed_id` | Free. One feed's name, filters, enabled state, delivery mode and template |
+| `list_templates` | none | Free. Template ids, names, descriptions and filters for `create_feed` |
+| `update_feed` | `feed_id`, `name`, `filters` or `description`, `enabled` | Free. New filters replace the old ones, so a call can lose filters; include every filter to keep |
 | `delete_feed` | `feed_id` | Free. Permanent; confirm with the user first |
-| `get_balance` | none | Free |
+| `get_balance` | none | Free. The first call can apply a new account's one-time starting credit |
 | `get_pricing` | none | Free |
-| `create_topup_link` | none | Free. Pay as you go only. Returns a link; a human completes checkout |
+| `create_topup_link` | none | Free. Pay as you go only. Returns a link; a human completes checkout. The first call can apply a new account's one-time starting credit |
 
 Workflow:
 
 1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters, structured salary fields and no apply link. `salary_min_usd` and `salary_max_usd` are yearly USD and are set only for yearly pay in a currency with a USD rate, so a null there does not mean the job has no salary.
 2. Open only the jobs the user needs. For several jobs, use one `get_jobs` call (up to 25 ids) instead of one `get_job` per job. It returns the jobs in request order. Jobs your organization already opened are free, and new ones are opened while the balance lasts. The rest come back in `unopened` with a reason (`insufficient_credits`, `max_jobs`, `idempotent_replay` or `meter_unavailable`), and unknown ids in `not_found`. That is where the description (capped at 6,000 characters, with `description_truncated` and `description_length`) and apply link come from.
-3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. If the user has no feed, offer to create one with `create_feed` (from their description or explicit filters), show the resulting filters, and confirm before any `delete_feed`. Webhook delivery is still set up in the dashboard or REST API. `search_jobs` also works without a feed. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_jobs` call; say so before making it.
+3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, as JSON or CSV; descriptions only with `include_description`). Set `max_jobs` to cap spend. Use `get_feed` to read a feed's filters. If the user has no feed, offer to create one with `create_feed` (from their description, explicit filters or a template from `list_templates`) and show the resulting filters. Before `update_feed` changes filters, read them with `get_feed` and show what will be replaced. Confirm before any `delete_feed`. Webhook delivery is still set up in the dashboard or REST API. `search_jobs` also works without a feed. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_jobs` call; say so before making it.
 4. Before a large pull, call `get_balance`.
 5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
