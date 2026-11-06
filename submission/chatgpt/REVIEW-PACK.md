@@ -20,6 +20,15 @@ The endpoint `https://bordfeed.com/api/mcp/chatgpt` is not deployed. None of the
 
 OpenAI's update flow does not change an MCP URL after setup, so confirm the endpoint URL before the first upload.
 
+## Case P5 setup
+
+The zero-balance organization must still be at zero when P5 runs. On pay as you go, the first balance read or charge grants a one-time starting credit unless the owner already used it, and P5 would then open the jobs instead of stopping. The organization must meet one of these conditions:
+
+- Its owner already used the starting credit, in this organization or another one, and no balance remains.
+- It is on a credit plan with no balance. The starting credit applies only to pay as you go.
+
+Call `get_balance` on the organization first, and run P5 only if it reports a balance of 0. That call can apply the grant itself, so any other balance means the setup is wrong.
+
 ## Listing copy
 
 Display name:
@@ -58,7 +67,7 @@ Initial release with job search, full job listings, saved feeds and feed exports
 
 - Prompt: Find three remote product designer jobs and open them with full descriptions and apply links.
 - Expected tools: search_jobs, get_jobs
-- Expected result: Returns three jobs with descriptions and apply links, and reports the jobs returned and the remaining balance in jobs. The result has no USD amounts.
+- Expected result: Returns three jobs with descriptions and apply links, and reports the jobs returned and the remaining balance in jobs. The result has no USD prices and no price per job.
 
 ### P3. Create a saved feed
 
@@ -76,7 +85,7 @@ Initial release with job search, full job listings, saved feeds and feed exports
 
 - Prompt: Find three remote engineering jobs and open them with apply links.
 - Expected tools: search_jobs, get_jobs
-- Expected result: Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/pricing. Returns no checkout link and no USD amounts.
+- Expected result: Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/pricing. Returns no checkout link, no USD prices and no price per job.
 
 ## Negative test cases
 
@@ -110,7 +119,7 @@ Enter these in the portal under Review details. They are not part of the ZIP. Th
 - `get_balance` is annotated as a write, because the first call on a new account can apply a one-time starting credit.
 - This endpoint has no purchase tool and returns no checkout link and no USD prices. When credits run out, results say so and point to the informational page https://bordfeed.com/pricing.
 - Case P3 needs room for one more feed in the reviewer organization. Delete the Reviewer Remote Marketing feed after each run.
-- Case P5 needs the zero-balance organization. Reconnect and pick that organization at the consent step.
+- Case P5 needs the zero-balance organization. Reconnect, pick that organization at the consent step, and confirm `get_balance` reports a balance of 0 before the prompt.
 
 ## Reviewer credentials
 
