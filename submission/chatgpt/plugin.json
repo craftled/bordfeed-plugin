@@ -47,7 +47,7 @@
               "description": "Open full job listings",
               "prompt": "Find three remote product designer jobs and open them with full descriptions and apply links.",
               "tools_triggered": "search_jobs, get_jobs",
-              "expected_behavior": "Returns three jobs with descriptions and apply links, and reports the jobs returned and the remaining balance in jobs. The result has no USD amounts."
+              "expected_behavior": "Returns three jobs with descriptions and apply links, and reports the jobs returned and the remaining balance in jobs. The result has no USD prices and no price per job."
             },
             {
               "description": "Create a saved feed",
@@ -65,7 +65,7 @@
               "description": "Out of credits, run on the zero-balance reviewer organization",
               "prompt": "Find three remote engineering jobs and open them with apply links.",
               "tools_triggered": "search_jobs, get_jobs",
-              "expected_behavior": "Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/pricing. Returns no checkout link and no USD amounts."
+              "expected_behavior": "Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/pricing. Returns no checkout link, no USD prices and no price per job."
             }
           ],
           "negative": [
