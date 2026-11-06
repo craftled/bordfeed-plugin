@@ -24,8 +24,10 @@ OpenAI's update flow does not change an MCP URL after setup, so confirm the endp
 
 The zero-balance organization must still be at zero when P5 runs. On pay as you go, the first balance read or charge grants a one-time starting credit unless the owner already used it, and P5 would then open the jobs instead of stopping. The organization must meet one of these conditions:
 
-- Its owner already used the starting credit, in this organization or another one, and no balance remains.
+- Its owner already used the starting credit in a different organization, and no balance remains.
 - It is on a credit plan with no balance. The starting credit applies only to pay as you go.
+
+The organization must never have opened a job, because jobs it already paid for reopen for free even at a balance of 0.
 
 Call `get_balance` on the organization first, and run P5 only if it reports a balance of 0. That call can apply the grant itself, so any other balance means the setup is wrong.
 
