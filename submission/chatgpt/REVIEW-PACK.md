@@ -4,7 +4,7 @@ Draft material for the OpenAI plugin directory. `plugin.json` is the source for 
 
 ## Status
 
-The endpoint `https://bordfeed.com/api/mcp/chatgpt` is not deployed. None of the test cases below has been run. This pack makes no prediction about OpenAI's decision.
+The endpoint `https://bordfeed.com/api/mcp/chatgpt` is not deployed. Neither is the page `https://bordfeed.com/plans`. None of the test cases below has been run. This pack makes no prediction about OpenAI's decision.
 
 | Prerequisite | State |
 | --- | --- |
@@ -87,7 +87,7 @@ Initial release with job search, full job listings, saved feeds and feed exports
 
 - Prompt: Find three remote engineering jobs and open them with apply links.
 - Expected tools: search_jobs, get_jobs
-- Expected result: Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/pricing. Returns no checkout link, no USD prices and no price per job.
+- Expected result: Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/plans. Returns no checkout link, no USD prices and no price per job.
 
 ## Negative test cases
 
@@ -95,7 +95,7 @@ Initial release with job search, full job listings, saved feeds and feed exports
 
 - Why it should not complete: Buying credits is not available in ChatGPT, because credit purchases happen only on bordfeed.com.
 - Prompt: Buy 1,000 Bordfeed credits for me and send me the checkout link.
-- Expected result: Declines the purchase, calls no purchase tool and returns no checkout link. May point to the informational page https://bordfeed.com/pricing.
+- Expected result: Declines the purchase, calls no purchase tool and returns no checkout link. May point to the informational page https://bordfeed.com/plans.
 
 ### N2. Request to apply for a job
 
@@ -118,8 +118,10 @@ Enter these in the portal under Review details. They are not part of the ZIP. Th
 - `search_jobs`, `search`, `list_feeds`, `get_feed`, `list_templates`, `create_feed`, `update_feed`, `delete_feed` and `get_balance` use no credits.
 - `fetch`, `get_job`, `get_jobs`, `poll_feed` and `export_jobs` debit credits the organization already holds, so they are annotated as writes. They never delete data.
 - `update_feed` and `delete_feed` carry `destructiveHint: true`, because new filters overwrite the old ones and a delete is permanent. `create_feed` is an additive write and carries `destructiveHint: false`.
+- `fetch`, `get_job`, `get_jobs`, `poll_feed` and `export_jobs` carry `readOnlyHint: false` and `destructiveHint: true`. Opening a new job uses a credit that is not returned, so these are irreversible transactions. `search` and `search_jobs` are free and read-only.
+- `fetch` is therefore not read-only, although OpenAI's deep research and company knowledge compatibility asks for read-only `search` and `fetch`. Bordfeed declares what the tool does rather than mark it read-only. Deep research and company knowledge may not use it.
 - `get_balance` is annotated as a write, because the first call on a new account can apply a one-time starting credit.
-- This endpoint has no purchase tool and returns no checkout link and no USD prices. When credits run out, results say so and point to the informational page https://bordfeed.com/pricing.
+- This endpoint has no purchase tool and returns no checkout link and no USD prices. When credits run out, results say so and point to the informational page https://bordfeed.com/plans.
 - Case P3 needs room for one more feed in the reviewer organization. Delete the Reviewer Remote Marketing feed after each run.
 - Case P5 needs the zero-balance organization. Reconnect, pick that organization at the consent step, and confirm `get_balance` reports a balance of 0 before the prompt.
 
