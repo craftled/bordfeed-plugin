@@ -7,6 +7,7 @@ import Ajv from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { parse as parseYaml } from "yaml";
+import { STANDARD_TOOLS } from "./tools.mjs";
 
 // Paths below are relative to the repository root, wherever this is run from.
 process.chdir(fileURLToPath(new URL("..", import.meta.url)));
@@ -150,7 +151,22 @@ for (const file of ["package.json", "package-lock.json", "bun.lock", "bun.lockb"
 	if (existsSync(file)) fail(file, "dev tooling belongs in scripts/, not the plugin root");
 }
 
-// 6. Repo-wide text rules: no em dashes, no committed API keys.
+// 6. Directory listing rules: the docs name every tool, and the README meets
+// the Claude minimum (40 words outside code blocks) and shows the legal links.
+const readme = readFileSync("README.md", "utf8");
+const skill = readFileSync("skills/bordfeed/SKILL.md", "utf8");
+for (const tool of STANDARD_TOOLS) {
+	if (!readme.includes(`\`${tool}\``)) fail("README.md", `does not name the ${tool} tool`);
+	if (!skill.includes(`\`${tool}\``)) fail("skills/bordfeed/SKILL.md", `does not name the ${tool} tool`);
+}
+const proseWords = readme.replace(/^```[\s\S]*?^```$/gm, "").split(/\s+/).filter(Boolean).length;
+if (proseWords < 40) fail("README.md", `has ${proseWords} words outside code blocks; directories need at least 40`);
+for (const needle of ["https://bordfeed.com/privacy", "https://bordfeed.com/terms", "support@bordfeed.com"]) {
+	if (!readme.includes(needle)) fail("README.md", `must show ${needle}`);
+}
+if (!existsSync("LICENSE")) fail("LICENSE", "missing");
+
+// 7. Repo-wide text rules: no em dashes, no committed API keys.
 const tracked = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8" })
 	.split("\n")
 	.filter((f) => f && existsSync(f) && !f.endsWith(".svg") && !f.endsWith("package-lock.json"));

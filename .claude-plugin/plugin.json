@@ -10,6 +10,7 @@
   },
   "homepage": "https://bordfeed.com/docs/mcp",
   "repository": "https://github.com/craftled/bordfeed-plugin",
+  "privacyPolicyUrl": "https://bordfeed.com/privacy",
   "license": "MIT",
   "keywords": [
     "bordfeed",
