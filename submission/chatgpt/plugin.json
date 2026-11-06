@@ -1,0 +1,98 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bordfeed",
+  "version": "0.4.0",
+  "description": "Search active job listings and manage saved Bordfeed feeds for job boards and career newsletters.",
+  "author": {
+    "name": "Bordfeed",
+    "email": "support@bordfeed.com",
+    "url": "https://bordfeed.com"
+  },
+  "homepage": "https://bordfeed.com",
+  "repository": "https://github.com/craftled/bordfeed-plugin",
+  "license": "MIT",
+  "keywords": ["bordfeed", "jobs", "job-board", "job-data", "careers"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Bordfeed",
+        "shortDescription": "Search jobs and saved feeds",
+        "longDescription": "Bordfeed gives job board operators and career newsletter writers current job listings in ChatGPT. Search active jobs by keyword, company, location, workplace type, country, role family and salary. Open full listings with descriptions and apply links. Create, read, update and delete saved feeds, and pull the newest jobs from a feed as JSON or CSV.\n\nBordfeed serves public job listings from employers' careers pages and applicant tracking systems. It does not submit applications and does not hold candidate data.\n\nYou need an existing Bordfeed account. Sign in with OAuth and pick the organization to use. Searching jobs and listing feeds use no credits. Opening full jobs and pulling jobs from a feed use credits from that organization's existing balance, and each result reports the balance. Bordfeed reads and changes only the saved feeds of the organization you connect.",
+        "developerName": "Bordfeed",
+        "category": "Productivity",
+        "capabilities": ["Search job listings", "Open full job listings", "Manage saved job feeds", "Export feed jobs"],
+        "websiteURL": "https://bordfeed.com",
+        "supportURL": "https://bordfeed.com/contact",
+        "privacyPolicyURL": "https://bordfeed.com/privacy",
+        "termsOfServiceURL": "https://bordfeed.com/terms",
+        "defaultPrompt": [
+          "Find remote data engineer jobs in Germany that list a salary.",
+          "List my saved feeds and show the newest 5 jobs from the first one.",
+          "Create a saved feed for remote marketing jobs in the United States."
+        ],
+        "brandColor": "#0A0A0A",
+        "composerIcon": "./assets/logo.svg",
+        "logo": "./assets/logo.svg"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Search active jobs with filters",
+              "prompt": "Find remote data engineer jobs in Germany that list a salary.",
+              "tools_triggered": "search_jobs",
+              "expected_behavior": "Returns matching active jobs with title, company, location and salary. The result uses no credits and has no apply links."
+            },
+            {
+              "description": "Open full job listings",
+              "prompt": "Find three remote product designer jobs and open them with full descriptions and apply links.",
+              "tools_triggered": "search_jobs, get_jobs",
+              "expected_behavior": "Returns three jobs with descriptions and apply links, and reports the jobs returned and the remaining balance in jobs. The result has no USD prices and no price per job."
+            },
+            {
+              "description": "Create a saved feed",
+              "prompt": "Create a saved feed called Reviewer Remote Marketing for remote marketing jobs in the United States.",
+              "tools_triggered": "create_feed",
+              "expected_behavior": "Creates the feed in the connected organization and shows its id, name and filters. No credits are used."
+            },
+            {
+              "description": "Pull jobs from a saved feed",
+              "prompt": "List my saved feeds and show the newest 5 jobs from the first one.",
+              "tools_triggered": "list_feeds, poll_feed",
+              "expected_behavior": "Lists the organization's saved feeds, then returns up to 5 jobs from the first feed, newest first, and reports the remaining balance in jobs."
+            },
+            {
+              "description": "Out of credits, run on the zero-balance reviewer organization",
+              "prompt": "Find three remote engineering jobs and open them with apply links.",
+              "tools_triggered": "search_jobs, get_jobs",
+              "expected_behavior": "Returns the search rows, then says the jobs were not opened because the organization has no credits left. Points to the informational page https://bordfeed.com/plans. Returns no checkout link, no USD prices and no price per job."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Buying credits is not available in ChatGPT, because credit purchases happen only on bordfeed.com.",
+              "prompt": "Buy 1,000 Bordfeed credits for me and send me the checkout link.",
+              "expected_behavior": "Declines the purchase, calls no purchase tool and returns no checkout link. May point to the informational page https://bordfeed.com/plans."
+            },
+            {
+              "description": "Bordfeed does not submit job applications or hold candidate data.",
+              "prompt": "Apply to the first job in my feed and attach my resume.",
+              "expected_behavior": "Says Bordfeed cannot submit applications. May offer the job's apply link so the user can apply on the employer's site."
+            },
+            {
+              "description": "Saved feeds of other organizations are not accessible.",
+              "prompt": "Show me the saved feeds that belong to another company's Bordfeed account.",
+              "expected_behavior": "Says it can see only the connected organization's feeds and returns no data from another organization."
+            }
+          ]
+        },
+        "demo_recording_url": "",
+        "commerce": false,
+        "commerce_description": "Users sign in to an existing Bordfeed account. Credit purchases happen only on bordfeed.com, outside ChatGPT."
+      },
+      "publication": {
+        "release_notes": "Initial release with job search, full job listings, saved feeds and feed exports."
+      }
+    }
+  }
+}

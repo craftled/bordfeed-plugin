@@ -1,5 +1,4 @@
 // Validates every manifest and the skill frontmatter. Exits 1 on any error.
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +6,8 @@ import Ajv from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { parse as parseYaml } from "yaml";
+import { findSecrets, trackedTextFiles } from "./text-checks.mjs";
+import { STANDARD_TOOLS } from "./tools.mjs";
 
 // Paths below are relative to the repository root, wherever this is run from.
 process.chdir(fileURLToPath(new URL("..", import.meta.url)));
@@ -150,17 +151,27 @@ for (const file of ["package.json", "package-lock.json", "bun.lock", "bun.lockb"
 	if (existsSync(file)) fail(file, "dev tooling belongs in scripts/, not the plugin root");
 }
 
-// 6. Repo-wide text rules: no em dashes, no committed API keys.
-const tracked = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8" })
-	.split("\n")
-	.filter((f) => f && existsSync(f) && !f.endsWith(".svg") && !f.endsWith("package-lock.json"));
+// 6. Directory listing rules: the docs name every tool, and the README meets
+// the Claude minimum (40 words outside code blocks) and shows the legal links.
+const readme = readFileSync("README.md", "utf8");
+const skill = readFileSync("skills/bordfeed/SKILL.md", "utf8");
+for (const tool of STANDARD_TOOLS) {
+	if (!readme.includes(`\`${tool}\``)) fail("README.md", `does not name the ${tool} tool`);
+	if (!skill.includes(`\`${tool}\``)) fail("skills/bordfeed/SKILL.md", `does not name the ${tool} tool`);
+}
+const proseWords = readme.replace(/^```[\s\S]*?^```$/gm, "").split(/\s+/).filter(Boolean).length;
+if (proseWords < 40) fail("README.md", `has ${proseWords} words outside code blocks; directories need at least 40`);
+for (const needle of ["https://bordfeed.com/privacy", "https://bordfeed.com/terms", "support@bordfeed.com"]) {
+	if (!readme.includes(needle)) fail("README.md", `must show ${needle}`);
+}
+if (!existsSync("LICENSE")) fail("LICENSE", "missing");
+
+// 7. Repo-wide text rules: no em dashes, no committed secrets.
+const tracked = trackedTextFiles();
 for (const file of tracked) {
 	const text = readFileSync(file, "utf8");
 	if (text.includes("\u2014")) fail(file, "contains an em dash");
-	const PLACEHOLDERS = new Set(["bf_live_your_key", "bf_live_invalid_smoke_test_key"]);
-	for (const [candidate] of text.matchAll(/bf_(?:live|test)_[A-Za-z0-9_-]{8,}/g)) {
-		if (!PLACEHOLDERS.has(candidate)) fail(file, "looks like it contains a Bordfeed API key");
-	}
+	for (const secret of findSecrets(text)) fail(file, `looks like it contains ${secret}`);
 }
 
 if (errors.length > 0) {
