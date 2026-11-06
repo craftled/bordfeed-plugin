@@ -9,11 +9,13 @@ process.chdir(fileURLToPath(new URL("..", import.meta.url)));
 execFileSync(process.execPath, ["scripts/validate-chatgpt.mjs"], { stdio: "inherit" });
 
 const OUTPUT = "dist/bordfeed-chatgpt.zip";
+const manifest = readFileSync("submission/chatgpt/plugin.json");
+const { logo, composerIcon } = JSON.parse(manifest).extensions["com.openai"].interface;
 const zip = zipSync(
 	{
-		"plugin.json": readFileSync("submission/chatgpt/plugin.json"),
+		"plugin.json": manifest,
 		"mcp.json": readFileSync("submission/chatgpt/mcp.json"),
-		"assets/logo.svg": readFileSync("assets/logo.svg"),
+		...Object.fromEntries([logo, composerIcon].map((path) => [path.slice(2), readFileSync(path)])),
 	},
 	{ mtime: "2000-01-01" },
 );
