@@ -228,14 +228,18 @@ for (const tool of ["create_topup_link", "get_pricing"]) {
 if (tableRows(pack, "| Prerequisite | State |").join("\n") !== PREREQUISITE_ROWS.join("\n")) fail(PACK, "the 7 prerequisite rows must stay as pinned, all BLOCKED");
 if (tableRows(pack, "| Field | Value |").join("\n") !== CREDENTIAL_ROWS.join("\n")) fail(PACK, "reviewer credential rows must stay the exact BLOCKED placeholders");
 if (!pack.includes("is not deployed")) fail(PACK, "must say the endpoint is not deployed until it is");
-for (const phrase of ["owner already used the starting credit", "credit plan with no balance", "`get_balance`"]) {
-	if (!pack.slice(pack.indexOf("## Case P5 setup")).includes(phrase)) fail(PACK, `Case P5 setup must say "${phrase}"`);
+const p5Setup = pack.slice(pack.indexOf("## Case P5 setup"), pack.indexOf("## Listing copy"));
+for (const phrase of ["owner already used the starting credit", "credit plan with no balance", "`get_balance`", "must never have opened a job"]) {
+	if (!p5Setup.includes(phrase)) fail(PACK, `Case P5 setup must say "${phrase}"`);
 }
 const CLAIM = new RegExp(
 	[
 		String.raw`\b(?:is|are|now|went|gone|goes)\s+live\b`,
 		String.raw`\blive\s+(?:in|on)\s+(?:the\s+)?(?:ChatGPT|OpenAI)\b`,
-		String.raw`\b(?:is|are|was|were|been)\s+deployed\b`,
+		String.raw`\b(?:is|are|was|were|been)\s+(?:\w+\s+)?deployed\b`,
+		String.raw`\b(?:we|have|has)\s+deployed\b|\bdeployed\s+to\s+production\b`,
+		String.raw`\bnow\s+available\s+in\s+ChatGPT\b`,
+		String.raw`\btest\s+cases?\s+(?:\w+\s+){0,2}passed\b`,
 		String.raw`\b(?:OpenAI|review(?:ers?)?)\s+(?:(?!not\b)\w+\s+){0,2}(?:accept|approv)\w*`,
 		String.raw`(?<!\bnot\s)\b(?:accepted|approved|published|listed|verified)\s+(?:by|for|in|on)\s+(?:the\s+)?(?:OpenAI|ChatGPT)\b`,
 		String.raw`\b(?:passed|cleared)\s+(?:\w+\s+){0,2}review\b|\breview\s+passed\b`,
@@ -245,6 +249,7 @@ const CLAIM = new RegExp(
 	].join("|"),
 	"i",
 );
+const NEGATED_STATUS = /\b(?:not|never|nothing)\b(?:\s+\w+){0,3}?\s+(?:deployed|submitted|live)\b/gi;
 const claimTexts = [
 	[PACK, pack],
 	[PLUGIN, packageText],
@@ -252,7 +257,7 @@ const claimTexts = [
 	["skills/bordfeed/SKILL.md", readFileSync("skills/bordfeed/SKILL.md", "utf8")],
 ];
 for (const [file, text] of claimTexts) {
-	const match = text.match(CLAIM);
+	const match = text.replace(NEGATED_STATUS, " ").match(CLAIM);
 	if (match) fail(file, `must not claim "${match[0]}"`);
 }
 
