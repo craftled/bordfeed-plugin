@@ -29,7 +29,7 @@ Bordfeed serves public job listings from employers' careers pages and applicant 
 | `get_job`, `fetch` | One full job with description and apply link | Billed |
 | `get_jobs` | Up to 25 full jobs in one call, opened while your balance lasts | Billed |
 | `list_feeds` | Your saved feeds | Free |
-| `poll_feed` | The next page of jobs from a saved feed | Billed |
+| `poll_feed` | A saved feed's jobs, newest first; with the cursor from your last poll, only the jobs added since | Billed |
 | `export_jobs` | A snapshot of the newest jobs from a saved feed, with apply links | Billed |
 | `get_feed` | One saved feed's name, filters, enabled state, delivery mode and template | Free |
 | `list_templates` | Feed templates to start `create_feed` from | Free |
@@ -39,6 +39,8 @@ Bordfeed serves public job listings from employers' careers pages and applicant 
 | `get_balance`, `get_pricing`, `create_topup_link` | Credits, prices and a top-up link | Free |
 
 Saved feeds are named sets of filters (for example "remote marketing jobs in the US"). The agent can read, create, update and delete them. Webhook delivery is set up in the Bordfeed dashboard or the REST API.
+
+If your job board already polls a feed over the REST API with `since=last_poll`, do not also poll that feed with `poll_feed`: both move the same last-poll time, so the board would skip the jobs the agent took. `export_jobs` leaves that time alone.
 
 Billed tools cost 1 credit for each returned job your organization has never been charged for. A job it was already charged for is free every time after, so pulling the same jobs again for next week's draft costs nothing for those jobs. Lists, search and empty pages are free. On pay as you go a credit is $0.01, and new accounts start with a one-time $20 credit (verified, non-disposable email) with no card. Plans and current prices are on [bordfeed.com/pricing](https://bordfeed.com/pricing).
 
