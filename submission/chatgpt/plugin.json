@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "bordfeed",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Search active job listings and manage saved Bordfeed feeds for job boards and career newsletters.",
   "author": {
     "name": "Bordfeed",
