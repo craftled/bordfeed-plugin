@@ -1,25 +1,11 @@
 // Live smoke test against the hosted Bordfeed MCP server.
 // Always: no key and a bad key must get HTTP 401 on initialize.
 // With BORDFEED_TEST_API_KEY set: initialize (Bearer and x-api-key) and tools/list
-// must succeed and list the expected tools. Neither calls a tool, so no credits are used.
+// must succeed and list exactly the expected tools. Neither calls a tool, so no credits are used.
+import { STANDARD_TOOLS } from "./tools.mjs";
+
 const ENDPOINT = process.env.BORDFEED_MCP_URL || "https://bordfeed.com/api/mcp";
 const TIMEOUT_MS = 20_000;
-const EXPECTED_TOOLS = [
-	"search",
-	"fetch",
-	"search_jobs",
-	"get_job",
-	"get_jobs",
-	"list_feeds",
-	"poll_feed",
-	"export_jobs",
-	"create_feed",
-	"update_feed",
-	"delete_feed",
-	"get_balance",
-	"get_pricing",
-	"create_topup_link",
-];
 
 let failures = 0;
 let skipped = 0;
@@ -156,11 +142,12 @@ async function main() {
 	}
 	const list = await post(rpc("tools/list", undefined, 2), listHeaders);
 	const names = list.message?.result?.tools?.map((t) => t.name) ?? [];
-	const missing = EXPECTED_TOOLS.filter((t) => !names.includes(t));
-	if (list.status !== 200 || missing.length > 0) {
-		fail(`tools/list: status ${list.status}, missing ${missing.join(", ") || "none"}`);
+	const missing = STANDARD_TOOLS.filter((t) => !names.includes(t));
+	const unexpected = names.filter((t) => !STANDARD_TOOLS.includes(t));
+	if (list.status !== 200 || missing.length > 0 || unexpected.length > 0) {
+		fail(`tools/list: status ${list.status}, missing ${missing.join(", ") || "none"}, unexpected ${unexpected.join(", ") || "none"}`);
 	} else {
-		pass(`tools/list: ${names.length} tools, all ${EXPECTED_TOOLS.length} expected tools present`);
+		pass(`tools/list: exactly the ${STANDARD_TOOLS.length} expected tools`);
 	}
 }
 

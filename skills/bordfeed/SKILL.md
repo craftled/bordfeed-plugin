@@ -5,7 +5,7 @@ license: MIT
 compatibility: Needs network access to https://bordfeed.com and a Bordfeed account (OAuth sign-in or a bf_live_ API key).
 metadata:
   author: bordfeed
-  version: "0.4.0"
+  version: "0.5.0"
   homepage: https://bordfeed.com/docs
   source: https://github.com/craftled/bordfeed-plugin
 ---
@@ -44,34 +44,47 @@ Bordfeed does not submit applications or hold candidate data. It serves public j
 | `get_jobs` | `ids` (1 to 25 job ids or slugs), `max_jobs` (1 to 25; caps newly charged jobs, already-opened jobs are still returned), `idempotency_key` | Billed per newly opened job, at the `get_job` price (see Billing) |
 | `fetch` | `id` | Billed (see Billing). Returns `{id, title, text, url, metadata}` |
 | `list_feeds` | none | Free |
-| `poll_feed` | `feed_id`, `limit` (1 to 50, default 10), `cursor`, `max_jobs`, `idempotency_key` | Billed (see Billing) |
-| `export_jobs` | `feed_id`, `max_jobs` (1 to 100, default 50), `idempotency_key` | Billed (see Billing) |
-| `create_feed` | `name`, `filters` or `description` (plain language, 3 to 1000 chars, compiled into filters), optional `template_id` (with `filters` only) | Free. Poll delivery |
-| `update_feed` | `feed_id`, `name`, `filters` or `description`, `enabled` | Free. New filters replace the old ones |
+| `poll_feed` | `feed_id`, `limit` (1 to 50, default 10), `cursor` (the `next_cursor` from an earlier poll), `max_jobs`, `idempotency_key` | Billed (see Billing). Moves the feed's last-poll time (see Workflow) |
+| `export_jobs` | `feed_id`, `format` (`json` or `csv`, default `json`), `include_description`, `max_jobs` (1 to 100, default 50), `idempotency_key` | Billed (see Billing) |
+| `create_feed` | `name`, plus `filters`, `template_id` (alone or with `filters`, which override it) or `description` (plain language, 3 to 1000 chars, compiled into filters; not with `filters` or `template_id`) | Free. Poll delivery |
+| `get_feed` | `feed_id` | Free. One feed's name, filters, enabled state, delivery mode and template |
+| `list_templates` | none | Free. Template ids, names, descriptions and filters for `create_feed` |
+| `update_feed` | `feed_id`, `name`, `filters` or `description`, `enabled` | Free. New filters replace the old ones, so a call can lose filters; include every filter to keep |
 | `delete_feed` | `feed_id` | Free. Permanent; confirm with the user first |
-| `get_balance` | none | Free |
+| `get_balance` | none | Free. The first call can apply a new account's one-time starting credit |
 | `get_pricing` | none | Free |
-| `create_topup_link` | none | Free. Pay as you go only. Returns a link; a human completes checkout |
+| `create_topup_link` | none | Free. Pay as you go only. Returns a link; a human completes checkout. The first call can apply a new account's one-time starting credit |
 
 Workflow:
 
 1. Search with `search_jobs` (filters) or `search` (keywords only). Rows are compact: a summary capped at 280 characters, structured salary fields and no apply link. `salary_min_usd` and `salary_max_usd` are yearly USD and are set only for yearly pay in a currency with a USD rate, so a null there does not mean the job has no salary.
 2. Open only the jobs the user needs. For several jobs, use one `get_jobs` call (up to 25 ids) instead of one `get_job` per job. It returns the jobs in request order. Jobs your organization already opened are free, and new ones are opened while the balance lasts. The rest come back in `unopened` with a reason (`insufficient_credits`, `max_jobs`, `idempotent_replay` or `meter_unavailable`), and unknown ids in `not_found`. That is where the description (capped at 6,000 characters, with `description_truncated` and `description_length`) and apply link come from.
-3. For a saved feed, call `list_feeds`, then `poll_feed` to page with `next_cursor`, or `export_jobs` for one snapshot of the newest jobs (compact rows with apply links, no summaries). Set `max_jobs` to cap spend. If the user has no feed, offer to create one with `create_feed` (from their description or explicit filters), show the resulting filters, and confirm before any `delete_feed`. Webhook delivery is still set up in the dashboard or REST API. `search_jobs` also works without a feed. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_jobs` call; say so before making it.
+3. For a saved feed, call `list_feeds`, then `poll_feed` or `export_jobs`. `poll_feed` returns the feed's jobs newest first, as compact rows with apply links and no description. Store `next_cursor` and pass it on the next poll to get only the jobs added since; a full page means call again right away, and `invalid_cursor` means start over without a cursor. `export_jobs` is one snapshot of the newest jobs (compact rows with apply links, as JSON or CSV; descriptions only with `include_description`). Set `max_jobs` to cap spend. For a job's full text, open it with `get_jobs`, which is free for jobs the feed already charged. Each `poll_feed` call moves the feed's last-poll time, which the REST API's `since=last_poll` reads: if the user's job board or script polls that feed over REST with `since=last_poll`, do not `poll_feed` it, because the next REST poll would skip those jobs. Use `export_jobs`, which leaves that time alone, or ask first. Use `get_feed` to read a feed's filters. If the user has no feed, offer to create one with `create_feed` (from their description, explicit filters or a template from `list_templates`) and show the resulting filters. Feed `filters` use the REST names, which differ from `search_jobs` in two places: `search` (not `query`) and `published_since` (not `added_since`; both mean when Bordfeed added the job). Before `update_feed` changes filters, read them with `get_feed` and show what will be replaced. Confirm before any `delete_feed`. Webhook delivery is still set up in the dashboard or REST API. `search_jobs` also works without a feed. `search_jobs` rows have no apply link, so a list with links then needs a billed `get_jobs` call; say so before making it.
 4. Before a large pull, call `get_balance`.
 5. For a newsletter or job board, format what the tools returned (title, company, location, salary, posted date, apply link). Do not invent salaries, locations or links that the data does not have.
 
-Every billable result carries a `billing` object with `jobs_returned`, the balance (`balance_jobs`) and an upper bound on the charge: `max_cost_usd` on pay as you go, `max_credits_used` on plans. The real charge can be lower because jobs already charged to the organization are free, so never present the bound as the amount charged. On an `insufficient_credits` error, give the user the `topup_url`. `get_jobs` does not fail when credits run out: it returns what the balance covered plus a `topup` block. On pay as you go that block has a `topup_url` to give the user; on a plan it has only a message. After a `get_jobs` call has charged, a retry with the same `idempotency_key` and ids on the same UTC day returns only the jobs already opened, lists the rest as `idempotent_replay`, never charges again, and marks `billing` with `replayed: true`. A call that charged nothing does not bind the key, so the same key can charge later. To open more after a top-up, use a new key. On `rate_limit_exceeded`, wait `retry_after_seconds`.
+Every billable result carries a `billing` object with `jobs_returned` and the balance (`balance_jobs`). It reports what the call charged as `cost_usd` on pay as you go or `credits_used` on plans, and an upper bound as `max_cost_usd` or `max_credits_used`. Tell the user the charged amount. When it is missing, give only the bound and say "at most": the real charge can be lower because jobs already charged to the organization are free. When the balance cannot cover a call, pay as you go gets an `insufficient_credits` error with a `topup_url` to give the user; a plan gets `payment_required` with `balance_jobs` and no link, so point the user to their plan in the dashboard. `get_jobs` does not fail when credits run out: it returns what the balance covered plus a `topup` block. On pay as you go that block has a `topup_url` to give the user; on a plan it has only a message. After a `get_jobs` call has charged, a retry with the same `idempotency_key` and ids on the same UTC day returns only the jobs already opened, lists the rest as `idempotent_replay`, never charges again, and marks `billing` with `replayed: true`. A call that charged nothing does not bind the key, so the same key can charge later. To open more after a top-up, use a new key. On `rate_limit_exceeded`, wait `retry_after_seconds`.
+
+Billed tools are marked as not read-only, because each new job spends credits that are not refunded. A client may ask the user to approve each call; that is expected, so say what the call will open and its cost bound first.
+
+Other errors to handle:
+
+- `feed_name_taken`: another feed in the organization has that name. Ask for a different name.
+- `feed_limit_reached`: the organization cannot add another feed; the message says why. Offer to update or delete one.
+- `compile_limit_reached`: the daily limit for feeds built from a `description` is used up. Wait `retry_after_seconds` (it resets at 00:00 UTC), or pass `filters` instead.
+- `invalid_arguments`, `invalid_filters`: a value is not allowed. The message names it.
+- `invalid_cursor`: start the poll again without a cursor.
+- `not_found`: no such job or feed in this organization.
 
 ## REST API
 
 All endpoints take an API key as `Authorization: Bearer` or `x-api-key`. When the user is connected through MCP OAuth, use the MCP tools instead; the REST API is for code the user runs with their own key. Billed endpoints:
 
-- `GET /feeds/{id}/jobs`: a feed's jobs, newest first. `since=last_poll` returns only jobs new since the last request. Paginate with `cursor`.
-- `GET /feeds/{id}/export`: up to 1,000 jobs from a feed as JSON, CSV, HTML or Markdown.
+- `GET /feeds/{id}/jobs`: a feed's jobs, newest first. `since=last_poll` returns only jobs new since the last request. When `pagination.has_more` is true, pass `next_cursor` as `cursor`; a feed with a search filter returns `next_cursor: null` and pages with `next_offset` as `offset`.
+- `GET /feeds/{id}/export`: up to 1,000 jobs from a feed as JSON, CSV, HTML or Markdown. An export also moves the feed's last-poll time, so do not mix it with a `since=last_poll` poller on the same feed.
 - `GET /jobs/{id}`: one full job by id or slug.
 
-Free endpoints include `GET /feeds`, `GET /companies`, `GET /companies/{id}/jobs`, `GET /search/suggest`, `GET /templates` and `GET /billing/balance`. If a response is lost, retry with the same `Idempotency-Key` header (MCP: `idempotency_key`) for the same feed and the same jobs on the same UTC day; that retry records no new charge. Once credits run out, a page with unpaid jobs returns HTTP 402 with `insufficient_credits` and a `topup_url`.
+Free endpoints include `GET /feeds`, `GET /companies`, `GET /companies/{id}/jobs` (job summaries without the description or apply link), `GET /search/suggest`, `GET /templates` and `GET /billing/balance`. If a response is lost, retry with the same `Idempotency-Key` header (MCP: `idempotency_key`) for the same feed and the same jobs on the same UTC day; that retry records no new charge. Once credits run out, a page with unpaid jobs returns HTTP 402: `insufficient_credits` with a `topup_url` on pay as you go, `payment_required` on a plan. A 429 carries `Retry-After`. Every error has an `error.code` and a `docs_url` into https://bordfeed.com/docs/errors, which explains each code.
 
 ## Billing
 
