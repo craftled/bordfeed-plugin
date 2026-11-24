@@ -4,7 +4,7 @@
 
 # Bordfeed plugin
 
-Fresh job listings for your job board or career newsletter, straight from your coding agent. This plugin connects Claude Code, Cursor and other [Agent Plugins](https://agent-plugins.org) clients to the hosted [Bordfeed](https://bordfeed.com) MCP server, and adds a `bordfeed` skill that tells the agent when to use it, which tools to call and what each call costs.
+[Bordfeed](https://bordfeed.com) is a job data API for agents and builders. This plugin brings it into your coding agent: it connects Claude Code, Cursor and other [Agent Plugins](https://agent-plugins.org) clients to the hosted Bordfeed MCP server, and adds a `bordfeed` skill that tells the agent when to use it, which tools to call and what each call costs.
 
 Ask for "fresh remote marketing jobs for this week's newsletter" and the agent searches active listings, pulls the jobs from your saved Bordfeed feed with titles, companies, locations, salaries where listed and apply links, and formats them for your issue or your board.
 
