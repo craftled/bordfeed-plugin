@@ -5,7 +5,7 @@ license: MIT
 compatibility: Needs network access to https://bordfeed.com and a Bordfeed account (OAuth sign-in or a bf_live_ API key).
 metadata:
   author: bordfeed
-  version: "0.5.0"
+  version: "0.5.1"
   homepage: https://bordfeed.com/docs
   source: https://github.com/craftled/bordfeed-plugin
 ---
